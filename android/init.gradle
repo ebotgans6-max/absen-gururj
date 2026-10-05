@@ -1,0 +1,26 @@
+allprojects {
+    buildscript {
+        repositories {
+            maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' }
+            all { ArtifactRepository repo ->
+                if (repo instanceof MavenArtifactRepository) {
+                    def url = repo.url.toString()
+                    if (url.contains("repo.maven.apache.org") || url.contains("repo1.maven.org")) {
+                        repo.url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven { url 'https://maven-central.storage-download.googleapis.com/maven2/' }
+        all { ArtifactRepository repo ->
+            if (repo instanceof MavenArtifactRepository) {
+                def url = repo.url.toString()
+                if (url.contains("repo.maven.apache.org") || url.contains("repo1.maven.org")) {
+                    repo.url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+                }
+            }
+        }
+    }
+}

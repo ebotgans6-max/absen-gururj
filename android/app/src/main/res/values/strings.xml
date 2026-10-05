@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Guru RJ</string>
+    <string name="title_activity_main">Guru RJ</string>
+    <string name="package_name">com.gururj.app</string>
+    <string name="custom_url_scheme">com.gururj.app</string>
+</resources>
