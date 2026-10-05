@@ -21,7 +21,7 @@ import {
   AlertTriangle,
   ArrowRight,
 } from 'lucide-react';
-import { scheduleData } from '../data/scheduleData';
+import { scheduleData, isTeacherMatch } from '../data/scheduleData';
 import { useApp } from '../context/AppContext';
 import { normalizePhone, getTodayDateString } from '../data/initialData';
 import { formatRupiah } from './PrintSlipModal';
@@ -66,8 +66,15 @@ function SubjectBlock({
   activeDate,
   isClaimLocked,
   lockMessage,
+  onlyMySchedule,
 }) {
   const { currentUser, completedSessions, toggleTeachingSession, showToast } = useApp();
+
+  const isAssignedToMe = isTeacherMatch(subject, currentUser?.name);
+
+  if (onlyMySchedule && !isAssignedToMe) {
+    return null;
+  }
 
   if (!subject || subject === '-') {
     return (
@@ -79,6 +86,10 @@ function SubjectBlock({
       </div>
     );
   }
+
+  const parts = String(subject || '').split(' - ');
+  const mapelTitle = parts[0] || subject;
+  const teacherInSlot = parts[1] || '';
 
   const sessionId = `${level}-${day}-${time}-${classKey}`;
   const claim = completedSessions.find(
@@ -146,7 +157,7 @@ function SubjectBlock({
           isClaimLocked || isPastDate ? 'cursor-not-allowed opacity-90' : 'cursor-pointer active:scale-95'
         }`}
       >
-        <div className="flex items-start justify-between gap-1 mb-1.5">
+        <div className="flex items-start justify-between gap-1 mb-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100">
             {classLabel}
           </span>
@@ -165,9 +176,14 @@ function SubjectBlock({
           </span>
         </div>
 
-        <h4 className="font-black text-sm tracking-tight text-white mb-2 group-hover:underline">
-          {subject}
+        <h4 className="font-black text-sm tracking-tight text-white mb-0.5 group-hover:underline">
+          {mapelTitle}
         </h4>
+        {teacherInSlot && (
+          <p className="text-[11px] text-emerald-100/90 font-medium truncate mb-2">
+            👤 {teacherInSlot}
+          </p>
+        )}
 
         <div className="flex items-center justify-between text-[10px] pt-1.5 border-t border-white/20 text-emerald-100">
           <span className="flex items-center gap-1">
@@ -191,7 +207,7 @@ function SubjectBlock({
           isClaimLocked ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-slate-200/80'
         }`}
       >
-        <div className="flex items-start justify-between gap-1 mb-1.5">
+        <div className="flex items-start justify-between gap-1 mb-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
             {classLabel}
           </span>
@@ -200,9 +216,14 @@ function SubjectBlock({
           </span>
         </div>
 
-        <h4 className="font-extrabold text-sm tracking-tight text-slate-800 mb-1.5 line-through decoration-slate-400">
-          {subject}
+        <h4 className="font-extrabold text-sm tracking-tight text-slate-800 mb-0.5 line-through decoration-slate-400">
+          {mapelTitle}
         </h4>
+        {teacherInSlot && (
+          <p className="text-[11px] text-slate-500 font-medium truncate mb-1">
+            👤 {teacherInSlot}
+          </p>
+        )}
 
         <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200 truncate">
           Diajar: <strong>{claim.teacherName}</strong>
@@ -211,7 +232,7 @@ function SubjectBlock({
     );
   }
 
-  // 3a. Unclaimed: When Locked (Logic 1 & 3: completely disabled/locked)
+  // 3a. Unclaimed: When Locked
   if (isClaimLocked) {
     return (
       <div
@@ -219,7 +240,7 @@ function SubjectBlock({
         className="p-3 rounded-2xl border border-slate-200/90 bg-slate-100/90 text-slate-400 transition-all duration-200 cursor-not-allowed select-none flex flex-col justify-between group shadow-2xs"
       >
         <div>
-          <div className="flex items-start justify-between gap-1 mb-1.5">
+          <div className="flex items-start justify-between gap-1 mb-1">
             <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider text-slate-500">
               {classLabel}
             </span>
@@ -230,8 +251,13 @@ function SubjectBlock({
           </div>
 
           <h4 className="font-extrabold text-sm tracking-tight text-slate-600 line-clamp-1">
-            {subject}
+            {mapelTitle}
           </h4>
+          {teacherInSlot && (
+            <p className="text-[10px] text-slate-400 truncate mt-0.5">
+              👤 {teacherInSlot}
+            </p>
+          )}
         </div>
 
         <div className="mt-2 pt-1.5 border-t border-slate-200 flex items-center justify-between text-[10px]">
@@ -246,15 +272,24 @@ function SubjectBlock({
   return (
     <div
       onClick={handleToggle}
-      className={`p-3 rounded-2xl border transition-all duration-200 cursor-pointer hover:shadow-soft-sm active:scale-95 flex flex-col justify-between group ${getSubjectColor(
-        subject
-      )}`}
+      className={`p-3 rounded-2xl border transition-all duration-200 cursor-pointer hover:shadow-soft-sm active:scale-95 flex flex-col justify-between group ${
+        isAssignedToMe
+          ? 'ring-2 ring-emerald-500/60 border-emerald-400 bg-emerald-50/80'
+          : getSubjectColor(mapelTitle)
+      }`}
     >
       <div>
-        <div className="flex items-start justify-between gap-1 mb-1.5">
-          <span className="text-[10px] font-bold opacity-80 uppercase tracking-wider">
-            {classLabel}
-          </span>
+        <div className="flex items-start justify-between gap-1 mb-1">
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-[10px] font-bold opacity-80 uppercase tracking-wider">
+              {classLabel}
+            </span>
+            {isAssignedToMe && (
+              <span className="px-1.5 py-0.2 rounded-md bg-emerald-600 text-white text-[9px] font-black shadow-2xs">
+                Jadwal Anda
+              </span>
+            )}
+          </div>
           <button
             type="button"
             className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-white/80 hover:bg-white text-slate-700 text-[9px] font-bold border border-slate-200/80 transition group-hover:border-brand-500 group-hover:text-brand-700 shadow-2xs"
@@ -265,8 +300,16 @@ function SubjectBlock({
         </div>
 
         <h4 className="font-extrabold text-sm tracking-tight leading-snug">
-          {subject}
+          {mapelTitle}
         </h4>
+        {teacherInSlot && (
+          <p className="text-[11px] font-semibold text-slate-600 truncate mt-0.5 flex items-center gap-1">
+            <span>👤</span>
+            <span className={isAssignedToMe ? 'text-emerald-800 font-bold' : ''}>
+              {teacherInSlot}
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="mt-2 pt-1.5 border-t border-black/5 flex items-center justify-between text-[10px] opacity-75 group-hover:opacity-100">
@@ -341,6 +384,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
   const [selectedClass, setSelectedClass] = useState('ALL');
   const [selectedDate, setSelectedDate] = useState(() => getDateForDay(defaultDay));
   const [searchQuery, setSearchQuery] = useState('');
+  const [onlyMySchedule, setOnlyMySchedule] = useState(false);
 
   const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
@@ -443,15 +487,30 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
   const rawList = scheduleData[selectedLevel]?.[selectedDay] || [];
 
   const filteredList = useMemo(() => {
-    if (!searchQuery.trim()) return rawList;
+    let list = rawList;
+
+    if (onlyMySchedule && currentUser?.name) {
+      list = list.filter((item) => {
+        if (item.isBreak) return false;
+        return (
+          isTeacherMatch(item.kelas7, currentUser.name) ||
+          isTeacherMatch(item.kelas8, currentUser.name) ||
+          isTeacherMatch(item.kelas9, currentUser.name) ||
+          isTeacherMatch(item.kelas10, currentUser.name) ||
+          isTeacherMatch(item.kelas11, currentUser.name)
+        );
+      });
+    }
+
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase().trim();
 
-    return rawList.filter((item) => {
+    return list.filter((item) => {
       if (item.isBreak) return item.label?.toLowerCase().includes(q);
       const values = Object.values(item).join(' ').toLowerCase();
       return values.includes(q);
     });
-  }, [rawList, searchQuery]);
+  }, [rawList, searchQuery, onlyMySchedule, currentUser]);
 
   // Compute total sessions claimed by this teacher for this month
   const myCompletedSessions = useMemo(() => {
@@ -725,6 +784,23 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
         {/* Filter and Search Bar */}
         <div className="px-3.5 sm:px-5 py-2.5 bg-slate-50/80 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 text-xs">
           <div className="flex items-center gap-1.5 overflow-x-auto flex-nowrap hide-scrollbar no-scrollbar py-0.5 w-full sm:w-auto">
+            {/* Quick Toggle: Jadwal Saya */}
+            <button
+              type="button"
+              onClick={() => setOnlyMySchedule(!onlyMySchedule)}
+              className={`px-3 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer shadow-2xs ${
+                onlyMySchedule
+                  ? 'bg-emerald-600 text-white border border-emerald-600 shadow-xs'
+                  : 'bg-white border border-emerald-300/80 text-emerald-800 hover:bg-emerald-50'
+              }`}
+              title="Filter khusus jadwal mengajar nama Anda"
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>{onlyMySchedule ? '⭐ Jadwal Saya (Aktif)' : `Jadwal Saya (${currentUser?.name || 'Guru'})`}</span>
+            </button>
+
+            <span className="text-[11px] font-bold text-slate-300 mx-0.5 flex-shrink-0">|</span>
+
             <span className="text-[11px] font-bold text-slate-500 mr-0.5 flex items-center gap-1 flex-shrink-0">
               <Filter className="w-3.5 h-3.5" />
               <span>Kelas:</span>
@@ -750,7 +826,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari mapel (cth: MTK)..."
+              placeholder="Cari mapel / nama guru..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs focus:border-brand-500 outline-none shadow-2xs"
@@ -871,6 +947,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           activeDate={selectedDate}
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
+                          onlyMySchedule={onlyMySchedule}
                         />
                       )}
 
@@ -886,6 +963,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           activeDate={selectedDate}
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
+                          onlyMySchedule={onlyMySchedule}
                         />
                       )}
 
@@ -901,6 +979,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           activeDate={selectedDate}
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
+                          onlyMySchedule={onlyMySchedule}
                         />
                       )}
                     </div>
@@ -925,6 +1004,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           activeDate={selectedDate}
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
+                          onlyMySchedule={onlyMySchedule}
                         />
                       )}
 
@@ -940,6 +1020,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           activeDate={selectedDate}
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
+                          onlyMySchedule={onlyMySchedule}
                         />
                       )}
                     </div>
@@ -951,10 +1032,14 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
             <div className="text-center py-10 px-4 bg-white rounded-2xl border border-dashed border-slate-200">
               <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <p className="text-sm font-semibold text-slate-700">
-                Tidak ada jadwal ditemukan
+                {onlyMySchedule
+                  ? `Tidak ada jadwal mengajar untuk ${currentUser?.name || 'Anda'}`
+                  : 'Tidak ada jadwal ditemukan'}
               </p>
               <p className="text-xs text-slate-400 mt-1">
-                {searchQuery
+                {onlyMySchedule
+                  ? `Bapak/Ibu ${currentUser?.name || 'Guru'} tidak memiliki jadwal mengajar pada hari ${selectedDay} di jenjang ${selectedLevel}.`
+                  : searchQuery
                   ? `Tidak ada mata pelajaran yang cocok dengan pencarian "${searchQuery}".`
                   : `Tidak ada jadwal pelajaran untuk ${selectedLevel} pada hari ${selectedDay}.`}
               </p>
