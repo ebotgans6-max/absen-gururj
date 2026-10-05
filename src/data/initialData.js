@@ -196,3 +196,51 @@ export const getPeriodFromDate = (dateStr) => {
   return null;
 };
 
+// Target Jam Masuk dan Jam Pulang Guru RJ
+// Senin s/d Kamis: Masuk 09.30 WIB, Pulang 13.45 WIB
+// Jumat: Masuk 07.00 WIB, Pulang 11.35 WIB
+export const ATTENDANCE_SCHEDULE_HOURS = {
+  weekday: {
+    inTime: '09:30',
+    outTime: '13:45',
+    inMinutes: 9 * 60 + 30, // 570
+    outMinutes: 13 * 60 + 45, // 825
+    inLabel: '09.30 WIB',
+    outLabel: '13.45 WIB',
+    dayName: 'Senin - Kamis',
+  },
+  friday: {
+    inTime: '07:00',
+    outTime: '11:35',
+    inMinutes: 7 * 60, // 420
+    outMinutes: 11 * 60 + 35, // 695
+    inLabel: '07.00 WIB',
+    outLabel: '11.35 WIB',
+    dayName: 'Jumat',
+  },
+};
+
+export const getScheduleHoursForDate = (dateParam = new Date()) => {
+  let d;
+  if (typeof dateParam === 'string') {
+    // If format is YYYY-MM-DD
+    const parts = dateParam.split('-');
+    if (parts.length === 3) {
+      d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    } else {
+      d = new Date(dateParam);
+    }
+  } else {
+    d = dateParam;
+  }
+
+  const dayOfWeek = d.getDay(); // 0: Minggu, 1: Senin, ..., 5: Jumat, 6: Sabtu
+  const isFriday = dayOfWeek === 5;
+
+  return {
+    isFriday,
+    dayOfWeek,
+    ...(isFriday ? ATTENDANCE_SCHEDULE_HOURS.friday : ATTENDANCE_SCHEDULE_HOURS.weekday),
+  };
+};
+

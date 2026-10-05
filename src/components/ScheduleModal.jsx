@@ -105,6 +105,24 @@ function SubjectBlock({
       return;
     }
 
+    const todayDate = getTodayDateString();
+
+    if (isMyClaim) {
+      if (activeDate < todayDate) {
+        showToast(
+          'Sesi mengajar dari hari sebelumnya telah terkunci dan tidak dapat dibatalkan.',
+          'warning',
+          'Sesi Terkunci'
+        );
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Apakah Anda yakin ingin membatalkan klaim sesi mengajar ${subject} (${classLabel})?`
+      );
+      if (!confirmed) return;
+    }
+
     toggleTeachingSession({
       sessionId,
       level,
@@ -118,11 +136,14 @@ function SubjectBlock({
 
   // 1. Claimed by Current Teacher: Solid Green with Checkmark Visual Cue
   if (isMyClaim) {
+    const todayDate = getTodayDateString();
+    const isPastDate = activeDate < todayDate;
+
     return (
       <div
         onClick={handleToggle}
         className={`relative overflow-hidden p-3 rounded-2xl bg-gradient-to-br from-emerald-600 to-brand-600 text-white shadow-soft-md shadow-emerald-600/30 border-2 border-emerald-400 transition-all duration-200 group ${
-          isClaimLocked ? 'cursor-not-allowed opacity-85' : 'cursor-pointer active:scale-95'
+          isClaimLocked || isPastDate ? 'cursor-not-allowed opacity-90' : 'cursor-pointer active:scale-95'
         }`}
       >
         <div className="flex items-start justify-between gap-1 mb-1.5">
@@ -130,7 +151,7 @@ function SubjectBlock({
             {classLabel}
           </span>
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-white/25 text-[9px] font-black tracking-wide text-white">
-            {isClaimLocked ? (
+            {isClaimLocked || isPastDate ? (
               <>
                 <Lock className="w-3 h-3 text-emerald-200" />
                 <span>TERKUNCI</span>
@@ -154,7 +175,7 @@ function SubjectBlock({
             <strong className="truncate max-w-[85px]">Klaim Saya</strong>
           </span>
           <span className="underline opacity-80 group-hover:opacity-100 text-[9px]">
-            {isClaimLocked ? 'Terkunci' : 'Batal?'}
+            {isClaimLocked || isPastDate ? 'Terkunci' : 'Batal?'}
           </span>
         </div>
       </div>

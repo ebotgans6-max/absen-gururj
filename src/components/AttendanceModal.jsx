@@ -12,7 +12,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getTodayDateString } from '../data/initialData';
+import { getTodayDateString, getScheduleHoursForDate } from '../data/initialData';
 
 export default function AttendanceModal({ isOpen, onClose, existingRecord, targetDate }) {
   const { currentUser, clockIn, showToast, isClockedInToday } = useApp();
@@ -20,6 +20,7 @@ export default function AttendanceModal({ isOpen, onClose, existingRecord, targe
   const today = getTodayDateString();
   const effectiveDate = targetDate || existingRecord?.date || today;
   const isBackdated = effectiveDate < today;
+  const scheduleHours = getScheduleHoursForDate(effectiveDate);
 
   // Find active record for effectiveDate
   const currentRecord =
@@ -169,6 +170,16 @@ export default function AttendanceModal({ isOpen, onClose, existingRecord, targe
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+
+        {/* Operating Hours Info Banner */}
+        <div className="mx-6 mt-3 px-3 py-2 bg-emerald-50/80 border border-emerald-200/70 rounded-2xl flex items-center justify-between text-xs text-emerald-900">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold text-[11px]">
+              Patokan {scheduleHours.dayName}: Masuk <strong>{scheduleHours.inLabel}</strong> • Pulang <strong>{scheduleHours.outLabel}</strong>
+            </span>
+          </div>
         </div>
 
         {/* Backdated Mode Informational Banner */}

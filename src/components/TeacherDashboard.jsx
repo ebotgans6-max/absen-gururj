@@ -25,11 +25,11 @@ import JabatanModal from './JabatanModal';
 import AttendanceModal from './AttendanceModal';
 import ProfileModal from './ProfileModal';
 import BadalModal from './BadalModal';
-import { getTodayDateString, normalizePhone } from '../data/initialData';
+import { getTodayDateString, normalizePhone, getScheduleHoursForDate } from '../data/initialData';
 import { initDailyAttendanceReminder, sendTestAttendanceReminder } from '../utils/localNotifications';
 
 export default function TeacherDashboard() {
-  const { currentUser, logout, clockIn, isClockedInToday, attendance = [], showToast } = useApp();
+  const { currentUser, logout, clockIn, clockOut, isClockedInToday, attendance = [], showToast } = useApp();
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [attendanceTargetDate, setAttendanceTargetDate] = useState(null);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
@@ -39,6 +39,34 @@ export default function TeacherDashboard() {
   const [isBadalModalOpen, setIsBadalModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
   const [greeting, setGreeting] = useState('Selamat Pagi,');
+
+  const scheduleHoursToday = getScheduleHoursForDate(new Date());
+
+  const handleClockOutClick = () => {
+    if (!todayRecord) {
+      showToast('Silakan lakukan Absen Masuk terlebih dahulu sebelum melakukan Absen Pulang.', 'error', 'Belum Absen Masuk');
+      return;
+    }
+    if (todayRecord.outTime) {
+      showToast(`Anda sudah melakukan Absen Pulang hari ini pada pukul ${todayRecord.outTime} WIB.`, 'info', 'Sudah Absen Pulang');
+      return;
+    }
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const isEarly = currentMinutes < scheduleHoursToday.outMinutes;
+
+    if (isEarly) {
+      const confirmEarly = window.confirm(
+        `Saat ini belum memasuki jam kepulangan resmi (${scheduleHoursToday.outLabel}).\n\nApakah Anda yakin ingin melakukan Absen Pulang lebih awal sekarang?`
+      );
+      if (!confirmEarly) return;
+      clockOut(currentUser, { allowEarly: true });
+      return;
+    }
+
+    clockOut(currentUser);
+  };
 
   // Requirement 44: Initialize daily attendance reminder (06:30 AM local notification)
   useEffect(() => {
@@ -213,11 +241,16 @@ export default function TeacherDashboard() {
         {/* Status Presensi Hari Ini Card */}
         <div className="bg-white rounded-3xl p-4 shadow-soft-md border border-slate-100">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700">Status Kehadiran Hari Ini</span>
+            <div>
+              <span className="text-xs font-bold text-slate-800">Status Presensi Hari Ini</span>
+              <p className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+                ⏰ Patokan: {scheduleHoursToday.dayName} (Masuk {scheduleHoursToday.inLabel} • Pulang {scheduleHoursToday.outLabel})
+              </p>
+            </div>
             {todayRecord ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Sudah Absen</span>
+                <span>{todayRecord.outTime ? 'Presensi Lengkap' : 'Sudah Masuk'}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-[11px] font-bold">
@@ -227,28 +260,83 @@ export default function TeacherDashboard() {
             )}
           </div>
 
-          <div className="mt-3 p-3 bg-slate-50 rounded-2xl flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+          {/* Details Row: Jam Masuk & Jam Pulang */}
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <div className="p-2.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                todayRecord ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+              }`}>
+                <Clock className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Jam Masuk</p>
+                <p className="text-xs font-bold text-slate-800 truncate">
+                  {todayRecord ? `${todayRecord.time} WIB` : 'Belum Absen'}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-2.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                todayRecord?.outTime ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'
+              }`}>
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Jam Pulang</p>
+                <p className="text-xs font-bold text-slate-800 truncate">
+                  {todayRecord?.outTime ? `${todayRecord.outTime} WIB` : `Batas: ${scheduleHoursToday.outLabel}`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons: Absen Masuk & Absen Pulang */}
+          <div className="grid grid-cols-2 gap-2.5 mt-3 pt-3 border-t border-slate-100">
+            {/* Tombol Absen Masuk */}
+            <button
+              type="button"
+              onClick={() => setIsAttendanceModalOpen(true)}
+              className={`p-2.5 rounded-2xl border transition-all text-left flex items-center justify-between active:scale-[0.98] ${
                 todayRecord
-                  ? 'bg-emerald-500 text-white shadow-soft-sm'
-                  : 'bg-amber-100 text-amber-600'
+                  ? 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                  : 'bg-gradient-to-r from-emerald-600 to-brand-600 hover:from-emerald-700 hover:to-brand-700 text-white shadow-soft-sm border-transparent'
               }`}
             >
-              <Clock className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-slate-800">
-                {todayRecord
-                  ? `Tercatat Masuk: Pukul ${todayRecord.time} WIB`
-                  : 'Presensi belum dilakukan'}
-              </p>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                {todayRecord
-                  ? `Status: ${displayStatus} (${todayRecord.time})${todayRecord.note ? ` - "${todayRecord.note}"` : ''} • Melalui ${todayRecord.method}`
-                  : 'Silakan klik tombol Absen Masuk di bawah ini'}
-              </p>
-            </div>
+              <div className="min-w-0 pr-1">
+                <p className={`text-xs font-bold ${todayRecord ? 'text-slate-800' : 'text-white'}`}>
+                  {todayRecord ? 'Ubah Presensi' : 'Absen Masuk'}
+                </p>
+                <p className={`text-[10px] truncate ${todayRecord ? 'text-slate-500' : 'text-emerald-100'}`}>
+                  {todayRecord ? `Status: ${displayStatus}` : `Masuk: ${scheduleHoursToday.inLabel}`}
+                </p>
+              </div>
+              <Clock className={`w-4 h-4 flex-shrink-0 ${todayRecord ? 'text-slate-400' : 'text-emerald-200'}`} />
+            </button>
+
+            {/* Tombol Absen Pulang */}
+            <button
+              type="button"
+              onClick={handleClockOutClick}
+              disabled={!todayRecord || Boolean(todayRecord?.outTime)}
+              className={`p-2.5 rounded-2xl border transition-all text-left flex items-center justify-between active:scale-[0.98] ${
+                todayRecord?.outTime
+                  ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-default opacity-85'
+                  : !todayRecord
+                  ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                  : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-soft-sm border-transparent'
+              }`}
+            >
+              <div className="min-w-0 pr-1">
+                <p className={`text-xs font-bold ${todayRecord && !todayRecord.outTime ? 'text-white' : 'text-slate-700'}`}>
+                  {todayRecord?.outTime ? 'Sudah Pulang' : 'Absen Pulang'}
+                </p>
+                <p className={`text-[10px] truncate ${todayRecord && !todayRecord.outTime ? 'text-amber-100' : 'text-slate-400'}`}>
+                  {todayRecord?.outTime ? `${todayRecord.outTime} WIB` : `Mulai ${scheduleHoursToday.outLabel}`}
+                </p>
+              </div>
+              <CheckCircle2 className={`w-4 h-4 flex-shrink-0 ${todayRecord && !todayRecord.outTime ? 'text-amber-100' : 'text-slate-300'}`} />
+            </button>
           </div>
         </div>
 

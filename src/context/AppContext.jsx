@@ -16,6 +16,8 @@ import {
   getPeriodFromDate,
   isKepalaSekolah,
   getJabatanAllowance,
+  getScheduleHoursForDate,
+  ATTENDANCE_SCHEDULE_HOURS,
 } from '../data/initialData';
 
 const AppContext = createContext();
@@ -998,8 +1000,12 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: 'Keterangan wajib diisi' };
     }
 
-    // Hadir status simplified: pure timestamp recording without late/on-time calculations
+    // Hadir status simplified: pure timestamp recording with schedule awareness
     const finalStatus = attendanceStatus;
+    const scheduleHours = getScheduleHoursForDate(targetDate);
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const isLate = !isBackdated && attendanceStatus === 'Hadir' && nowMinutes > scheduleHours.inMinutes;
+    const lateMinutes = isLate ? nowMinutes - scheduleHours.inMinutes : 0;
 
     // If updating existing record
     if (alreadyClockedIn && attendanceData.isUpdate) {
@@ -1008,6 +1014,9 @@ export const AppProvider = ({ children }) => {
         attendanceStatus,
         status: finalStatus,
         note: attendanceStatus === 'Hadir' ? (isBackdated ? 'Absen Susulan' : '') : note,
+        isLate,
+        lateMinutes,
+        targetInTime: scheduleHours.inLabel,
         updatedAt: now.toTimeString().split(' ')[0] + ' WIB',
       };
 
@@ -1030,8 +1039,12 @@ export const AppProvider = ({ children }) => {
       teacherName: user.name,
       date: targetDate,
       time: timeString,
+      outTime: attendanceData.outTime || null,
       attendanceStatus, // 'Hadir' | 'Sakit' | 'Izin' | 'Lainnya'
       status: finalStatus,
+      isLate,
+      lateMinutes,
+      targetInTime: scheduleHours.inLabel,
       note, // Reason explanation
       method: isBackdated ? 'Absen Susulan (Aplikasi)' : 'Aplikasi Guru RJ',
     };
@@ -1051,9 +1064,11 @@ export const AppProvider = ({ children }) => {
       showToast(
         isBackdated
           ? `Absen Susulan (${targetDate}) berhasil dicatat sebagai Hadir! Jadwal dan uang transport kini aktif.`
-          : `Absen Masuk (Hadir) berhasil tercatat pada ${timeString} WIB. Semangat mengajar hari ini!`,
+          : isLate
+          ? `Absen Masuk (Hadir) tercatat pukul ${timeString} WIB (${lateMinutes} mnt setelah jam ${scheduleHours.inLabel}). Semangat mengajar!`
+          : `Absen Masuk (Hadir) tepat waktu tercatat pukul ${timeString} WIB. (Batas masuk: ${scheduleHours.inLabel}). Semangat mengajar!`,
         'success',
-        isBackdated ? 'Absen Susulan Berhasil! 🎉' : 'Presensi Hadir Berhasil! 🎉'
+        isBackdated ? 'Absen Susulan Berhasil! 🎉' : isLate ? 'Presensi Masuk Tercatat ⏰' : 'Presensi Hadir Berhasil! 🎉'
       );
     } else {
       showToast(
@@ -1064,6 +1079,90 @@ export const AppProvider = ({ children }) => {
     }
 
     return { success: true, record: newRecord };
+  };
+
+  // Clock Out (Absen Pulang: Senin-Kamis 13.45 WIB, Jumat 11.35 WIB)
+  const clockOut = (teacherUser, outData = {}) => {
+    const today = getTodayDateString();
+    const user = teacherUser || currentUser;
+
+    if (!user) return { success: false, error: 'Tidak ada pengguna aktif' };
+
+    const normPhone = normalizePhone(user.phone);
+    const targetDate = outData.date || today;
+
+    const existingIndex = attendance.findIndex(
+      (a) => normalizePhone(a.teacherPhone) === normPhone && a.date === targetDate
+    );
+
+    if (existingIndex < 0) {
+      showToast(
+        'Silakan lakukan Absen Masuk terlebih dahulu sebelum melakukan Absen Pulang.',
+        'error',
+        'Belum Absen Masuk'
+      );
+      return { success: false, error: 'Belum absen masuk' };
+    }
+
+    const existing = attendance[existingIndex];
+    if (existing.outTime && !outData.isUpdate) {
+      showToast(
+        `Anda sudah melakukan Absen Pulang pada pukul ${existing.outTime} WIB.`,
+        'info',
+        'Sudah Absen Pulang'
+      );
+      return { success: false, error: 'Sudah absen pulang', record: existing };
+    }
+
+    const now = new Date();
+    const timeString = outData.time || now.toTimeString().split(' ')[0];
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const scheduleHours = getScheduleHoursForDate(targetDate);
+
+    // Validation: Mon-Thu 13.45 WIB, Fri 11.35 WIB
+    const isEarly = !outData.isBackdated && currentMinutes < scheduleHours.outMinutes;
+
+    if (isEarly && !outData.allowEarly) {
+      showToast(
+        `Belum memasuki jam pulang! Patokan jam pulang hari ${scheduleHours.isFriday ? 'Jumat' : 'Senin s/d Kamis'} adalah pukul ${scheduleHours.outLabel}.`,
+        'warning',
+        'Belum Waktunya Pulang'
+      );
+      return {
+        success: false,
+        error: 'Belum jam pulang',
+        outMinutes: scheduleHours.outMinutes,
+        outLabel: scheduleHours.outLabel,
+      };
+    }
+
+    const updatedRecord = {
+      ...existing,
+      outTime: timeString,
+      outStatus: isEarly ? 'Pulang Lebih Awal' : 'Selesai Bertugas',
+      targetOutTime: scheduleHours.outLabel,
+    };
+
+    setAttendance((prev) =>
+      prev.map((rec) => (rec.id === existing.id ? updatedRecord : rec))
+    );
+
+    try {
+      confetti({
+        particleCount: 60,
+        spread: 50,
+        origin: { y: 0.7 },
+        colors: ['#059669', '#10b981', '#34d399', '#ffffff'],
+      });
+    } catch (e) {}
+
+    showToast(
+      `Absen Pulang berhasil dicatat pada pukul ${timeString} WIB. Terima kasih atas dedikasi Anda hari ini!`,
+      'success',
+      'Absen Pulang Berhasil! 👋'
+    );
+
+    return { success: true, record: updatedRecord };
   };
 
   const isClockedInToday = (phone, date = getTodayDateString()) => {
@@ -1164,6 +1263,7 @@ export const AppProvider = ({ children }) => {
         findUserByPhone,
         logout,
         clockIn,
+        clockOut,
         isClockedInToday,
         adminMarkAttendance,
         updateSalarySlip,
