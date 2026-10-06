@@ -109,6 +109,30 @@ export const RATE_PER_SESSION = 7500;
 // Honor Rate per Substitute Teaching Session (Badal: Rp 3.000 per sesi)
 export const RATE_PER_BADAL_SESSION = 3000;
 
+// Calculate session duration (JP) based on time string (e.g. "09.30 - 10.50" -> 2 JP) or explicit duration
+export const calculateSessionDuration = (timeStr, explicitDuration) => {
+  if (explicitDuration !== undefined && explicitDuration !== null && !isNaN(Number(explicitDuration)) && Number(explicitDuration) > 0) {
+    return Number(explicitDuration);
+  }
+  if (!timeStr || typeof timeStr !== 'string') return 1;
+
+  // Split start and end times, e.g. "09.30 - 10.50" or "09:30 - 10:50"
+  const parts = timeStr.split('-').map((p) => p.trim().replace('.', ':'));
+  if (parts.length === 2) {
+    const startParts = parts[0].split(':').map(Number);
+    const endParts = parts[1].split(':').map(Number);
+    if (!isNaN(startParts[0]) && !isNaN(startParts[1]) && !isNaN(endParts[0]) && !isNaN(endParts[1])) {
+      const startMin = startParts[0] * 60 + startParts[1];
+      const endMin = endParts[0] * 60 + endParts[1];
+      const diffMin = endMin - startMin;
+      if (diffMin >= 105) return 3;
+      if (diffMin >= 60) return 2;
+      return 1;
+    }
+  }
+  return 1;
+};
+
 // Daily Transport Allowance calculation based on sessions per date
 // 1 to 2 sessions in a day -> Rp 17.000
 // > 2 sessions in a day -> Rp 25.000

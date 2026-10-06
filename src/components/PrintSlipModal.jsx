@@ -103,7 +103,7 @@ export default function PrintSlipModal({ isOpen, onClose, slip, teacher }) {
               <div className="space-y-1.5 text-xs text-slate-700">
                 <div className="flex justify-between py-1 bg-emerald-50/70 px-2.5 rounded-lg border border-emerald-100 font-semibold">
                   <span>
-                    Honor Sesi Reguler ({slip.totalRegularSessions !== undefined ? slip.totalRegularSessions : slip.totalSessionsCount || 0} Sesi × Rp 7.500)
+                    Honor Sesi Reguler ({slip.totalRegularSessions !== undefined ? slip.totalRegularSessions : slip.totalSessionsCount || 0} Sesi)
                   </span>
                   <span className="font-black text-emerald-800">
                     +{formatRupiah(slip.totalHonorSesi !== undefined ? slip.totalHonorSesi : totalMengajar)}

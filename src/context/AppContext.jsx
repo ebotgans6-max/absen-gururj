@@ -23,6 +23,7 @@ import {
   RATE_PER_BADAL_SESSION,
   INITIAL_COMPLETED_SESSIONS,
   calculateDailyTransport,
+  calculateSessionDuration,
   getPeriodFromDate,
   isKepalaSekolah,
   getJabatanAllowance,
@@ -355,7 +356,7 @@ export const AppProvider = ({ children }) => {
         const list = [];
         snapshot.forEach((d) => {
           const data = d.data();
-          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.phone))) {
+          if (data) {
             list.push(data);
           }
         });
@@ -370,7 +371,7 @@ export const AppProvider = ({ children }) => {
         const list = [];
         snapshot.forEach((d) => {
           const data = d.data();
-          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.teacherPhone))) {
+          if (data) {
             list.push(data);
           }
         });
@@ -386,7 +387,7 @@ export const AppProvider = ({ children }) => {
         const list = [];
         snapshot.forEach((d) => {
           const data = d.data();
-          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.teacherPhone))) {
+          if (data) {
             list.push(data);
           }
         });
@@ -401,7 +402,7 @@ export const AppProvider = ({ children }) => {
         const list = [];
         snapshot.forEach((d) => {
           const data = d.data();
-          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.teacherPhone))) {
+          if (data) {
             list.push(data);
           }
         });
@@ -440,9 +441,13 @@ export const AppProvider = ({ children }) => {
   // =========================================================================
 
   // Toggle Teaching Session Completion
-  const toggleTeachingSession = (sessionParams, teacherUser) => {
+  // Toggle Teaching Session Completion
+  const toggleTeachingSession = async (sessionParams, teacherUser) => {
     const teacher = teacherUser || currentUser;
-    if (!teacher) {
+    const resolvedPhone = teacher?.phone || sessionParams?.teacherPhone;
+    const resolvedName = teacher?.name || sessionParams?.teacherName;
+
+    if (!resolvedPhone && !resolvedName) {
       showToast('Silakan masuk terlebih dahulu untuk mengklaim sesi mengajar.', 'error', 'Perlu Masuk');
       return { success: false, error: 'Unauthorized' };
     }
@@ -455,11 +460,13 @@ export const AppProvider = ({ children }) => {
       className,
       subject,
       date = getTodayDateString(),
+      duration,
+      rate,
     } = sessionParams;
 
     const today = getTodayDateString();
-    if (teacher.role !== 'admin') {
-      const normTeacherPhone = normalizePhone(teacher.phone);
+    if (teacher?.role !== 'admin') {
+      const normTeacherPhone = normalizePhone(resolvedPhone);
       const targetAtt = attendance.find(
         (a) => normalizePhone(a.teacherPhone) === normTeacherPhone && a.date === date
       );
@@ -498,8 +505,8 @@ export const AppProvider = ({ children }) => {
     if (existingIndex !== -1) {
       const existing = completedSessions[existingIndex];
       const isOwner =
-        normalizePhone(existing.teacherPhone) === normalizePhone(teacher.phone) ||
-        teacher.role === 'admin';
+        normalizePhone(existing.teacherPhone) === normalizePhone(resolvedPhone) ||
+        teacher?.role === 'admin';
 
       if (!isOwner) {
         showToast(
@@ -515,14 +522,24 @@ export const AppProvider = ({ children }) => {
       updated.splice(existingIndex, 1);
       setCompletedSessions(updated);
 
-      // Delete from Firestore
-      deleteDoc(doc(db, 'completedSessions', existing.id)).catch((err) =>
-        console.error('Firestore delete session error:', err)
-      );
+      // Delete from Firestore both collections
+      try {
+        await deleteDoc(doc(db, 'completedSessions', existing.id));
+        await deleteDoc(doc(db, 'teaching_sessions', existing.id));
+      } catch (err) {
+        console.error('Firestore delete session error:', err);
+      }
 
       showToast(`Klaim sesi ${className} • ${subject} dibatalkan.`, 'info', 'Sesi Dibatalkan');
       return { success: true, action: 'unclaimed' };
     }
+
+    // Calculate session duration and total session honor (rate * duration)
+    const sessionDuration = Number(duration || calculateSessionDuration(time) || 1);
+    const sessionRate =
+      rate !== undefined
+        ? Number(rate)
+        : sessionDuration * (RATE_PER_SESSION || 7500);
 
     // Add new completed session
     const newSession = {
@@ -534,9 +551,10 @@ export const AppProvider = ({ children }) => {
       className,
       subject,
       date,
-      teacherPhone: teacher.phone,
-      teacherName: teacher.name,
-      rate: RATE_PER_SESSION,
+      teacherPhone: resolvedPhone,
+      teacherName: resolvedName,
+      duration: sessionDuration,
+      rate: sessionRate,
       period: getPeriodFromDate(date) || 'September 2026',
       completedAt:
         new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
@@ -544,10 +562,14 @@ export const AppProvider = ({ children }) => {
 
     setCompletedSessions((prev) => [newSession, ...prev]);
 
-    // Save to Firestore
-    setDoc(doc(db, 'completedSessions', newSession.id), sanitizeForFirestore(newSession)).catch((err) =>
-      console.error('Firestore save session error:', err)
-    );
+    // Save to Firestore collections 'completedSessions' and 'teaching_sessions'
+    try {
+      const sanitized = sanitizeForFirestore(newSession);
+      await setDoc(doc(db, 'completedSessions', newSession.id), sanitized);
+      await setDoc(doc(db, 'teaching_sessions', newSession.id), sanitized);
+    } catch (err) {
+      console.error('Firestore save session error:', err);
+    }
 
     try {
       confetti({
@@ -559,7 +581,7 @@ export const AppProvider = ({ children }) => {
     } catch (e) {}
 
     showToast(
-      `Sesi ${className} • ${subject} selesai diajar! (+Rp 7.500 honor tercatat) 🎉`,
+      `Sesi ${className} • ${subject} selesai diajar! (+Rp ${sessionRate.toLocaleString('id-ID')} honor tercatat) 🎉`,
       'success',
       'Selesai Mengajar'
     );
@@ -568,7 +590,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // Claim Substitute Teaching Session (Jam Badal)
-  const claimBadalSession = (badalData, teacherUser) => {
+  const claimBadalSession = async (badalData, teacherUser) => {
     const teacher = teacherUser || currentUser;
     if (!teacher) {
       showToast('Silakan masuk terlebih dahulu untuk mengklaim jam badal.', 'error', 'Perlu Masuk');
@@ -583,6 +605,7 @@ export const AppProvider = ({ children }) => {
     }
 
     const cleanDate = date || getTodayDateString();
+
     const newBadalSession = {
       id: `badal-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       sessionId: `badal-${Date.now()}`,
@@ -605,10 +628,14 @@ export const AppProvider = ({ children }) => {
 
     setCompletedSessions((prev) => [newBadalSession, ...prev]);
 
-    // Save to Firestore
-    setDoc(doc(db, 'completedSessions', newBadalSession.id), sanitizeForFirestore(newBadalSession)).catch(
-      (err) => console.error('Firestore save badal error:', err)
-    );
+    // Save to Firestore collections
+    try {
+      const sanitized = sanitizeForFirestore(newBadalSession);
+      await setDoc(doc(db, 'completedSessions', newBadalSession.id), sanitized);
+      await setDoc(doc(db, 'teaching_sessions', newBadalSession.id), sanitized);
+    } catch (err) {
+      console.error('Firestore save badal error:', err);
+    }
 
     try {
       confetti({
@@ -629,14 +656,17 @@ export const AppProvider = ({ children }) => {
   };
 
   // Delete / cancel a badal session
-  const deleteBadalSession = (sessionId) => {
+  const deleteBadalSession = async (sessionId) => {
     const target = completedSessions.find((s) => s.id === sessionId || s.sessionId === sessionId);
     setCompletedSessions((prev) => prev.filter((s) => s.id !== sessionId && s.sessionId !== sessionId));
 
     if (target) {
-      deleteDoc(doc(db, 'completedSessions', target.id)).catch((err) =>
-        console.error('Firestore delete badal error:', err)
-      );
+      try {
+        await deleteDoc(doc(db, 'completedSessions', target.id));
+        await deleteDoc(doc(db, 'teaching_sessions', target.id));
+      } catch (err) {
+        console.error('Firestore delete badal error:', err);
+      }
     }
 
     showToast('Klaim sesi badal berhasil dibatalkan.', 'info', 'Badal Dihapus');
@@ -669,7 +699,13 @@ export const AppProvider = ({ children }) => {
     const totalRegularSessions = regularSessions.length;
     const totalBadalSessions = badalSessions.length;
 
-    const totalHonorSesi = totalRegularSessions * (RATE_PER_SESSION || 7500);
+    const totalHonorSesi = regularSessions.reduce((sum, s) => {
+      const sessRate =
+        s?.rate !== undefined
+          ? Number(s.rate)
+          : Number(s?.duration || 1) * (RATE_PER_SESSION || 7500);
+      return sum + sessRate;
+    }, 0);
     const totalHonorBadal = totalBadalSessions * (RATE_PER_BADAL_SESSION || 3000);
 
     const transportData = calculateDailyTransport ? calculateDailyTransport(allSessions) : { totalTransport: 0, dailyBreakdown: [] };

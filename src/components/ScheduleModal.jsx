@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { scheduleData, isTeacherMatch } from '../data/scheduleData';
 import { useApp } from '../context/AppContext';
-import { normalizePhone, getTodayDateString } from '../data/initialData';
+import { normalizePhone, getTodayDateString, calculateSessionDuration } from '../data/initialData';
 import { formatRupiah } from './PrintSlipModal';
 
 // Color map for unselected subjects
@@ -67,8 +67,15 @@ function SubjectBlock({
   isClaimLocked,
   lockMessage,
   onlyMySchedule,
+  duration,
 }) {
-  const { currentUser, completedSessions, toggleTeachingSession, showToast } = useApp();
+  const {
+    currentUser,
+    completedSessions,
+    toggleTeachingSession,
+    showToast,
+    RATE_PER_SESSION = 7500,
+  } = useApp();
 
   const isAssignedToMe = isTeacherMatch(subject, currentUser?.name);
 
@@ -95,6 +102,14 @@ function SubjectBlock({
   const claim = completedSessions.find(
     (s) => s.sessionId === sessionId && s.date === activeDate
   );
+
+  const sessionDuration = Number(
+    claim?.duration || duration || calculateSessionDuration(time) || 1
+  );
+  const sessionRate =
+    claim?.rate !== undefined
+      ? Number(claim.rate)
+      : sessionDuration * (RATE_PER_SESSION || 7500);
 
   const isMyClaim =
     claim &&
@@ -142,6 +157,10 @@ function SubjectBlock({
       className: classLabel,
       subject,
       date: activeDate,
+      duration: sessionDuration,
+      rate: sessionRate,
+      teacherPhone: currentUser?.phone,
+      teacherName: currentUser?.name,
     });
   };
 
@@ -170,7 +189,7 @@ function SubjectBlock({
             ) : (
               <>
                 <CheckCircle2 className="w-3 h-3 text-emerald-200" />
-                <span>SELESAI (+7,5K)</span>
+                <span>SELESAI (+{sessionRate >= 1000 ? `${(sessionRate / 1000).toLocaleString('id-ID')}K` : sessionRate})</span>
               </>
             )}
           </span>
@@ -314,7 +333,7 @@ function SubjectBlock({
 
       <div className="mt-2 pt-1.5 border-t border-black/5 flex items-center justify-between text-[10px] opacity-75 group-hover:opacity-100">
         <span className="text-slate-500">Honor Sesi:</span>
-        <span className="font-bold text-brand-700">+Rp 7.500</span>
+        <span className="font-bold text-brand-700">+Rp {sessionRate.toLocaleString('id-ID')}</span>
       </div>
     </div>
   );
@@ -520,7 +539,14 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
     );
   }, [completedSessions, currentUser]);
 
-  const totalMyHonor = myCompletedSessions.length * RATE_PER_SESSION;
+  const totalMyHonor = myCompletedSessions.reduce((acc, s) => {
+    return (
+      acc +
+      (s?.rate !== undefined
+        ? Number(s.rate)
+        : Number(s?.duration || 1) * RATE_PER_SESSION)
+    );
+  }, 0);
 
   if (!isOpen) return null;
 
@@ -564,7 +590,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                 Total Sesi Terverifikasi Bulan Ini:
               </p>
               <p className="text-xs font-black text-emerald-950">
-                {myCompletedSessions.length} Sesi Selesai (@Rp 7.500)
+                {myCompletedSessions.length} Sesi Selesai
               </p>
             </div>
           </div>
@@ -948,6 +974,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
                           onlyMySchedule={onlyMySchedule}
+                          duration={slot.duration || slot.jp || calculateSessionDuration(slot.waktu)}
                         />
                       )}
 
@@ -964,6 +991,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
                           onlyMySchedule={onlyMySchedule}
+                          duration={slot.duration || slot.jp || calculateSessionDuration(slot.waktu)}
                         />
                       )}
 
@@ -980,6 +1008,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
                           onlyMySchedule={onlyMySchedule}
+                          duration={slot.duration || slot.jp || calculateSessionDuration(slot.waktu)}
                         />
                       )}
                     </div>
@@ -1005,6 +1034,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
                           onlyMySchedule={onlyMySchedule}
+                          duration={slot.duration || slot.jp || calculateSessionDuration(slot.waktu)}
                         />
                       )}
 
@@ -1021,6 +1051,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                           isClaimLocked={isClaimLocked}
                           lockMessage={lockMessage}
                           onlyMySchedule={onlyMySchedule}
+                          duration={slot.duration || slot.jp || calculateSessionDuration(slot.waktu)}
                         />
                       )}
                     </div>

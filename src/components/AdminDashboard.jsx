@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   CalendarCheck,
@@ -27,6 +27,9 @@ import {
   GraduationCap,
   KeyRound,
 } from 'lucide-react';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { isTeacherMatch } from '../data/scheduleData';
 import { useApp } from '../context/AppContext';
 import {
   getTodayDateString,
@@ -36,6 +39,7 @@ import {
   RATE_PER_SESSION,
   RATE_PER_BADAL_SESSION,
   AVAILABLE_JABATAN,
+  getPeriodFromDate,
 } from '../data/initialData';
 import PrintSlipModal, { formatRupiah } from './PrintSlipModal';
 import SalaryEditModal from './SalaryEditModal';
@@ -61,16 +65,79 @@ export default function AdminDashboard() {
     showToast,
   } = useApp();
 
+  // Dedicated Realtime Listener for Teaching Sessions (Requirement 3)
+  const [liveTeachingSessions, setLiveTeachingSessions] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'completedSessions'),
+      (snapshot) => {
+        const list = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data) list.push(data);
+        });
+        setLiveTeachingSessions(list);
+      },
+      (err) => console.warn('AdminDashboard completedSessions listener error:', err)
+    );
+    return () => unsub();
+  }, []);
+
+  // Merge live Firestore sessions with AppContext completedSessions
+  const allTeachingSessions = useMemo(() => {
+    const sessionMap = new Map();
+    (completedSessions || []).forEach((s) => {
+      if (s) {
+        const key = s.id || `${s.sessionId}-${s.date}`;
+        sessionMap.set(key, s);
+      }
+    });
+    (liveTeachingSessions || []).forEach((s) => {
+      if (s) {
+        const key = s.id || `${s.sessionId}-${s.date}`;
+        sessionMap.set(key, s);
+      }
+    });
+    return Array.from(sessionMap.values());
+  }, [completedSessions, liveTeachingSessions]);
+
+  // Dynamic Current Month & Year (defaults to current date e.g. "Oktober 2026")
+  const currentMonthYear = useMemo(() => {
+    return new Date().toLocaleDateString('id-ID', {
+      month: 'long',
+      year: 'numeric',
+    });
+  }, []);
+
   // Navigation Menu: 3 Main Sections per Requirement 21
   // 'attendance' (Rekap Absensi) | 'payroll' (Rekap Gaji) | 'detail' (Detail Guru & Mengajar)
   const [activeTab, setActiveTab] = useState('attendance');
 
   // Filter States
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
-  const [selectedMonth, setSelectedMonth] = useState('September 2026');
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthYear);
   const [attendanceViewMode, setAttendanceViewMode] = useState('date'); // 'date' | 'month'
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'hadir' | 'sakit' | 'izin' | 'lainnya' | 'belum'
+
+  // Dynamic available months combining current month, past months, and session periods
+  const availableMonths = useMemo(() => {
+    const set = new Set();
+    const now = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      set.add(d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }));
+    }
+    allTeachingSessions.forEach((s) => {
+      if (s?.period) set.add(s.period);
+      else if (s?.date) set.add(getPeriodFromDate(s.date));
+    });
+    (salarySlips || []).forEach((s) => {
+      if (s?.period) set.add(s.period);
+    });
+    return Array.from(set).filter(Boolean);
+  }, [allTeachingSessions, salarySlips]);
 
   // Selected Teacher for Section 3: "Detail Guru & Mengajar"
   const [selectedTeacherForDetail, setSelectedTeacherForDetail] = useState(teachers?.[0] || null);
@@ -88,14 +155,6 @@ export default function AdminDashboard() {
     if (resetTargetTeacher?.phone) adminResetPassword(resetTargetTeacher.phone);
     setResetTargetTeacher(null);
   };
-
-  const availableMonths = [
-    'September 2026',
-    'Agustus 2026',
-    'Juli 2026',
-    'Juni 2026',
-    'Mei 2026',
-  ];
 
   // ==============================================================
   // 1. REKAP ABSENSI (GLOBAL ATTENDANCE) COMPUTATIONS
@@ -158,19 +217,38 @@ export default function AdminDashboard() {
   const payrollDataList = (teachers || []).map((teacher) => {
     if (!teacher) return null;
     // 1. Filter completed sessions for this teacher in selected month
-    const teacherSessions = (completedSessions || []).filter((s) => {
+    const teacherSessions = allTeachingSessions.filter((s) => {
       if (!s) return false;
-      const matchPhone = normalizePhone(s.teacherPhone) === normalizePhone(teacher.phone);
-      const matchName = s.teacherName && teacher.name && s.teacherName.toLowerCase() === teacher.name.toLowerCase();
-      const matchPeriod = !s.period || !selectedMonth || s.period === selectedMonth;
-      return (matchPhone || matchName) && matchPeriod;
+      const matchPhone =
+        s.teacherPhone && teacher.phone &&
+        normalizePhone(s.teacherPhone) === normalizePhone(teacher.phone);
+      const matchName =
+        s.teacherName && teacher.name &&
+        (s.teacherName.trim().toLowerCase() === teacher.name.trim().toLowerCase() ||
+         isTeacherMatch(s.teacherName, teacher.name));
+      if (!matchPhone && !matchName) return false;
+
+      const sessionPeriod = s.period || (s.date ? getPeriodFromDate(s.date) : '');
+      const matchPeriod =
+        !selectedMonth ||
+        selectedMonth === 'all' ||
+        (sessionPeriod && sessionPeriod.toLowerCase() === selectedMonth.toLowerCase());
+      return matchPeriod;
     });
 
     const sessionsCount = teacherSessions.length;
     const regularSessions = teacherSessions.filter((s) => !s?.isBadal && s?.type !== 'badal');
     const badalSessions = teacherSessions.filter((s) => s?.isBadal || s?.type === 'badal');
+    const regularEarnings = regularSessions.reduce((sum, s) => {
+      return (
+        sum +
+        (s?.rate !== undefined
+          ? Number(s.rate)
+          : Number(s?.duration || 1) * (RATE_PER_SESSION || 7500))
+      );
+    }, 0);
     const sessionEarnings =
-      regularSessions.length * (RATE_PER_SESSION || 7500) +
+      regularEarnings +
       badalSessions.length * (RATE_PER_BADAL_SESSION || 3000);
 
     // 2. Uang Transport (calculated dynamically per day)
@@ -416,21 +494,40 @@ export default function AdminDashboard() {
     ? null
     : (selectedTeacherForDetail || (teachers && teachers.length > 0 ? teachers[0] : null));
 
-  const currentTeacherSessions = (completedSessions || []).filter((s) => {
+  const currentTeacherSessions = allTeachingSessions.filter((s) => {
     if (!s) return false;
-    const matchPeriod = !s.period || !selectedMonth || s.period === selectedMonth;
+    const sessionPeriod = s.period || (s.date ? getPeriodFromDate(s.date) : '');
+    const matchPeriod =
+      !selectedMonth ||
+      selectedMonth === 'all' ||
+      (sessionPeriod && sessionPeriod.toLowerCase() === selectedMonth.toLowerCase());
     if (!matchPeriod) return false;
+
     if (isAllTeachers) return true;
     if (!currentDetailTeacher) return false;
-    const matchPhone = normalizePhone(s.teacherPhone) === normalizePhone(currentDetailTeacher?.phone);
-    const matchName = s.teacherName && currentDetailTeacher?.name && s.teacherName.toLowerCase() === currentDetailTeacher.name.toLowerCase();
+
+    const matchPhone =
+      s.teacherPhone && currentDetailTeacher?.phone &&
+      normalizePhone(s.teacherPhone) === normalizePhone(currentDetailTeacher.phone);
+    const matchName =
+      s.teacherName && currentDetailTeacher?.name &&
+      (s.teacherName.trim().toLowerCase() === currentDetailTeacher.name.trim().toLowerCase() ||
+       isTeacherMatch(s.teacherName, currentDetailTeacher.name));
     return matchPhone || matchName;
   });
 
   const detailRegularSessions = currentTeacherSessions.filter((s) => !s?.isBadal && s?.type !== 'badal');
   const detailBadalSessions = currentTeacherSessions.filter((s) => s?.isBadal || s?.type === 'badal');
+  const detailRegularEarnings = detailRegularSessions.reduce((sum, s) => {
+    return (
+      sum +
+      (s?.rate !== undefined
+        ? Number(s.rate)
+        : Number(s?.duration || 1) * (RATE_PER_SESSION || 7500))
+    );
+  }, 0);
   const detailSessionEarnings =
-    detailRegularSessions.length * (RATE_PER_SESSION || 7500) +
+    detailRegularEarnings +
     detailBadalSessions.length * (RATE_PER_BADAL_SESSION || 3000);
   const detailTransportData = calculateDailyTransport ? calculateDailyTransport(currentTeacherSessions) : { totalTransport: 0, dailyBreakdown: [] };
 
@@ -1480,13 +1577,13 @@ export default function AdminDashboard() {
                           <td className="py-3 px-3 text-center whitespace-nowrap">
                             <span className="inline-flex items-center gap-1 font-bold text-brand-900 bg-brand-50 border border-brand-200/80 px-2 py-0.5 rounded-md text-[11px]">
                               <Clock className="w-3 h-3 text-brand-600" />
-                              <span>1 Jam (1 Sesi)</span>
+                              <span>{session.duration || 1} Jam ({session.duration || 1} JP)</span>
                             </span>
                           </td>
 
                           {/* 6. Honor Sesi */}
                           <td className="py-3 px-3 text-right whitespace-nowrap font-extrabold text-slate-800 font-mono">
-                            +{formatRupiah(session.rate || RATE_PER_SESSION)}
+                            +{formatRupiah(session.rate || (Number(session.duration || 1) * (RATE_PER_SESSION || 7500)))}
                           </td>
                         </tr>
                       ))

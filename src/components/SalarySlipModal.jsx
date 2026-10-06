@@ -171,7 +171,14 @@ export default function SalarySlipModal({
   const ratePerSession = RATE_PER_SESSION || 7500; // Rp 7.500
   const ratePerBadalSession = RATE_PER_BADAL_SESSION || 3000; // Rp 3.000
 
-  const totalHonorSesi = totalRegularSessions * ratePerSession;
+  const totalHonorSesi = regularSessions.reduce((sum, s) => {
+    return (
+      sum +
+      (s?.rate !== undefined
+        ? Number(s.rate)
+        : Number(s?.duration || 1) * ratePerSession)
+    );
+  }, 0);
   const totalHonorBadal = totalBadalSessions * ratePerBadalSession;
   const totalMengajar = totalHonorSesi + totalHonorBadal;
 
