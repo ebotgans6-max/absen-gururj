@@ -373,7 +373,7 @@ export default function SalarySlipModal({
                               isBadal ? 'text-amber-700 font-black' : 'text-emerald-700'
                             }`}
                           >
-                            +{formatRupiah(isBadal ? ratePerBadalSession : ratePerSession)}
+                            +Rp {sess.rate ? sess.rate.toLocaleString('id-ID') : (isBadal ? '3.000' : '7.500')}
                           </span>
                         </div>
                       );

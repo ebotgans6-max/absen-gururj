@@ -137,7 +137,7 @@ export default function PrintSlipModal({ isOpen, onClose, slip, teacher }) {
                           {isBadal ? ' [Badal]' : ''}
                         </span>
                         <span className={`font-semibold ${isBadal ? 'text-amber-700' : 'text-emerald-700'}`}>
-                          +{formatRupiah(s.rate || (isBadal ? 3000 : 7500))}
+                          +Rp {s.rate ? s.rate.toLocaleString('id-ID') : (isBadal ? '3.000' : '7.500')}
                         </span>
                       </div>
                     );
