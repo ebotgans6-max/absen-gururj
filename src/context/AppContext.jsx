@@ -621,11 +621,12 @@ export const AppProvider = ({ children }) => {
   const calculateTeacherSalary = (teacherPhone, period) => {
     const norm = normalizePhone(teacherPhone || currentUser?.phone);
     const teacher =
-      teachers.find((t) => normalizePhone(t.phone) === norm) ||
-      registeredUsers.find((u) => normalizePhone(u.phone) === norm) ||
+      (teachers || []).find((t) => t && normalizePhone(t.phone) === norm) ||
+      (registeredUsers || []).find((u) => u && normalizePhone(u.phone) === norm) ||
       currentUser;
 
-    const allSessions = completedSessions.filter((s) => {
+    const allSessions = (completedSessions || []).filter((s) => {
+      if (!s) return false;
       const matchesPhone = normalizePhone(s.teacherPhone) === norm;
       const matchesName =
         s.teacherName &&
@@ -636,21 +637,23 @@ export const AppProvider = ({ children }) => {
       return !period || sessPeriod === period;
     });
 
-    const regularSessions = allSessions.filter((s) => !s.isBadal && s.type !== 'badal');
-    const badalSessions = allSessions.filter((s) => s.isBadal || s.type === 'badal');
+    const regularSessions = allSessions.filter((s) => !s?.isBadal && s?.type !== 'badal');
+    const badalSessions = allSessions.filter((s) => s?.isBadal || s?.type === 'badal');
 
     const totalRegularSessions = regularSessions.length;
     const totalBadalSessions = badalSessions.length;
 
-    const totalHonorSesi = totalRegularSessions * RATE_PER_SESSION;
-    const totalHonorBadal = totalBadalSessions * RATE_PER_BADAL_SESSION;
+    const totalHonorSesi = totalRegularSessions * (RATE_PER_SESSION || 7500);
+    const totalHonorBadal = totalBadalSessions * (RATE_PER_BADAL_SESSION || 3000);
 
-    const transportData = calculateDailyTransport(allSessions);
-    const totalTransport = transportData.totalTransport;
+    const transportData = calculateDailyTransport ? calculateDailyTransport(allSessions) : { totalTransport: 0, dailyBreakdown: [] };
+    const totalTransport = transportData?.totalTransport || 0;
 
     const activeJabatan =
       Array.isArray(teacher?.jabatan) && teacher.jabatan.length > 0
         ? teacher.jabatan
+        : typeof teacher?.jabatan === 'string'
+        ? [teacher.jabatan]
         : ['Wali Kelas'];
     const totalTunjanganJabatan = activeJabatan.reduce(
       (sum, j) => sum + (getJabatanAllowance ? getJabatanAllowance(j) : 0),
@@ -678,14 +681,14 @@ export const AppProvider = ({ children }) => {
 
   const getTeacherCompletedSessions = (teacherPhone, period) => {
     const norm = normalizePhone(teacherPhone || currentUser?.phone);
-    return completedSessions.filter(
-      (s) => normalizePhone(s.teacherPhone) === norm && (!period || s.period === period)
+    return (completedSessions || []).filter(
+      (s) => s && normalizePhone(s.teacherPhone) === norm && (!period || s.period === period)
     );
   };
 
   const findUserByPhone = (rawPhone) => {
     const norm = normalizePhone(rawPhone);
-    return registeredUsers.find((u) => normalizePhone(u.phone) === norm);
+    return (registeredUsers || []).find((u) => u && normalizePhone(u.phone) === norm);
   };
 
   // Unified Login
@@ -1433,7 +1436,7 @@ export const AppProvider = ({ children }) => {
   const isClockedInToday = (phone, date = getTodayDateString()) => {
     const targetDate = date || getTodayDateString();
     const targetPhone = normalizePhone(phone || currentUser?.phone);
-    return attendance.find((a) => normalizePhone(a.teacherPhone) === targetPhone && a.date === targetDate);
+    return (attendance || []).find((a) => a && normalizePhone(a.teacherPhone) === targetPhone && a.date === targetDate);
   };
 
   // Admin Mark Attendance
@@ -1540,11 +1543,12 @@ export const AppProvider = ({ children }) => {
       value={{
         currentUser,
         setCurrentUser,
-        teachers,
-        attendance,
-        salarySlips,
-        schedules,
-        completedSessions,
+        teachers: teachers || [],
+        attendance: attendance || [],
+        salarySlips: salarySlips || [],
+        schedules: schedules || {},
+        completedSessions: completedSessions || [],
+        registeredUsers: registeredUsers || [],
         toggleTeachingSession,
         claimBadalSession,
         deleteBadalSession,

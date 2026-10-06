@@ -35,7 +35,8 @@ export default function BadalModal({ isOpen, onClose }) {
 
   // Filter teacher's badal sessions for this month / all
   const cleanPhone = normalizePhone(currentUser?.phone);
-  const myBadalSessions = completedSessions.filter((s) => {
+  const myBadalSessions = (completedSessions || []).filter((s) => {
+    if (!s) return false;
     const isOwner =
       normalizePhone(s.teacherPhone) === cleanPhone ||
       (currentUser?.name && s.teacherName?.toLowerCase() === currentUser.name.toLowerCase());

@@ -92,15 +92,15 @@ export default function SalarySlipModal({
     }
 
     // 2. Include any periods from existing salary slips
-    userSlips.forEach((s) => {
-      if (s.period && !list.includes(s.period)) {
+    (userSlips || []).forEach((s) => {
+      if (s?.period && !list.includes(s.period)) {
         list.push(s.period);
       }
     });
 
     // 3. Include any periods from completed sessions
-    completedSessions.forEach((s) => {
-      const p = s.period || getPeriodFromDate(s.date);
+    (completedSessions || []).forEach((s) => {
+      const p = s?.period || (s?.date ? getPeriodFromDate(s.date) : null);
       if (p && !list.includes(p)) {
         list.push(p);
       }
@@ -111,11 +111,11 @@ export default function SalarySlipModal({
 
   // Resolve matching slip for selected period or create an active virtual slip
   const activeSlip = useMemo(() => {
-    const existing = userSlips.find((s) => s.period === selectedPeriod);
+    const existing = (userSlips || []).find((s) => s?.period === selectedPeriod);
     if (existing) return existing;
 
     return {
-      id: `slip-${selectedPeriod.replace(/\s+/g, '-').toLowerCase()}`,
+      id: `slip-${(selectedPeriod || 'periode').replace(/\s+/g, '-').toLowerCase()}`,
       teacherPhone: cleanPhone,
       teacherName: teacherName || currentUser?.name || 'Tenaga Pendidik',
       period: selectedPeriod,
@@ -128,13 +128,17 @@ export default function SalarySlipModal({
   const resolvedProfile =
     (currentUser && (normalizePhone(currentUser.phone) === cleanPhone || currentUser.name === (activeSlip?.teacherName || teacherName)))
       ? currentUser
-      : teachers.find((t) => normalizePhone(t.phone) === cleanPhone || (teacherName && t.name.toLowerCase() === teacherName.toLowerCase())) ||
-        registeredUsers.find((u) => normalizePhone(u.phone) === cleanPhone || (teacherName && u.name.toLowerCase() === teacherName.toLowerCase()));
+      : (teachers || []).find((t) => t && (normalizePhone(t.phone) === cleanPhone || (teacherName && t.name && t.name.toLowerCase() === teacherName.toLowerCase()))) ||
+        (registeredUsers || []).find((u) => u && (normalizePhone(u.phone) === cleanPhone || (teacherName && u.name && u.name.toLowerCase() === teacherName.toLowerCase())));
 
   const activeJabatanList = Array.isArray(resolvedProfile?.jabatan) && resolvedProfile.jabatan.length > 0
     ? resolvedProfile.jabatan
+    : typeof resolvedProfile?.jabatan === 'string'
+    ? [resolvedProfile.jabatan]
     : Array.isArray(currentUser?.jabatan) && currentUser.jabatan.length > 0
     ? currentUser.jabatan
+    : typeof currentUser?.jabatan === 'string'
+    ? [currentUser.jabatan]
     : ['Wali Kelas'];
 
   // Dynamically filter checked/completed sessions for the selected month and year
@@ -404,7 +408,7 @@ export default function SalarySlipModal({
 
               {/* Grouped by date list */}
               <div className="mt-3 space-y-2">
-                {transportData.dailyBreakdown.length > 0 ? (
+                {transportData?.dailyBreakdown && transportData.dailyBreakdown.length > 0 ? (
                   <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                     {transportData.dailyBreakdown.map((dayGroup, idx) => (
                       <div

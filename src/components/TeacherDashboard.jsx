@@ -154,8 +154,10 @@ export default function TeacherDashboard() {
 
             {/* Display the selected "Jabatan" in header right below Nama Lengkap */}
             <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-1">
-              {(currentUser?.jabatan && currentUser.jabatan.length > 0
+              {(Array.isArray(currentUser?.jabatan) && currentUser.jabatan.length > 0
                 ? currentUser.jabatan
+                : typeof currentUser?.jabatan === 'string'
+                ? [currentUser.jabatan]
                 : ['Wali Kelas']
               ).map((jab) => (
                 <span

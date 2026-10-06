@@ -100,10 +100,12 @@ export default function AdminDashboard() {
   // ==============================================================
   // 1. REKAP ABSENSI (GLOBAL ATTENDANCE) COMPUTATIONS
   // ==============================================================
-  const attendanceForSelectedDate = attendance.filter((a) => a.date === selectedDate);
+  const attendanceForSelectedDate = (attendance || []).filter((a) => a && a.date === selectedDate);
 
-  const teacherAttendanceStatusList = teachers.map((t) => {
+  const teacherAttendanceStatusList = (teachers || []).map((t) => {
+    if (!t) return null;
     const record = attendanceForSelectedDate.find((a) => {
+      if (!a) return false;
       if (a.teacherPhone && t.phone && normalizePhone(a.teacherPhone) === normalizePhone(t.phone)) return true;
       if (a.teacherName && t.name && a.teacherName.toLowerCase() === t.name.toLowerCase()) return true;
       return false;
@@ -120,15 +122,19 @@ export default function AdminDashboard() {
       note: record?.note || '-',
       record: record || null,
     };
-  });
+  }).filter(Boolean);
 
   // Filtered by status and search query
   const filteredAttendanceList = teacherAttendanceStatusList.filter((item) => {
-    const query = searchQuery.toLowerCase();
+    if (!item || !item.teacher) return false;
+    const query = (searchQuery || '').toLowerCase();
+    const teacherName = (item.teacher?.name || '').toLowerCase();
+    const teacherPhone = item.teacher?.phone || '';
+    const note = (item.note || '').toLowerCase();
     const matchesSearch =
-      item.teacher.name.toLowerCase().includes(query) ||
-      (item.teacher.phone && item.teacher.phone.includes(searchQuery)) ||
-      (item.note && item.note.toLowerCase().includes(query));
+      teacherName.includes(query) ||
+      teacherPhone.includes(query) ||
+      note.includes(query);
     if (!matchesSearch) return false;
 
     if (statusFilter === 'all') return true;
@@ -149,9 +155,11 @@ export default function AdminDashboard() {
   // ==============================================================
   // 2. REKAP GAJI (GLOBAL PAYROLL) COMPUTATIONS
   // ==============================================================
-  const payrollDataList = teachers.map((teacher) => {
+  const payrollDataList = (teachers || []).map((teacher) => {
+    if (!teacher) return null;
     // 1. Filter completed sessions for this teacher in selected month
-    const teacherSessions = completedSessions.filter((s) => {
+    const teacherSessions = (completedSessions || []).filter((s) => {
+      if (!s) return false;
       const matchPhone = normalizePhone(s.teacherPhone) === normalizePhone(teacher.phone);
       const matchName = s.teacherName && teacher.name && s.teacherName.toLowerCase() === teacher.name.toLowerCase();
       const matchPeriod = !s.period || !selectedMonth || s.period === selectedMonth;
@@ -159,27 +167,31 @@ export default function AdminDashboard() {
     });
 
     const sessionsCount = teacherSessions.length;
-    const regularSessions = teacherSessions.filter((s) => !s.isBadal && s.type !== 'badal');
-    const badalSessions = teacherSessions.filter((s) => s.isBadal || s.type === 'badal');
+    const regularSessions = teacherSessions.filter((s) => !s?.isBadal && s?.type !== 'badal');
+    const badalSessions = teacherSessions.filter((s) => s?.isBadal || s?.type === 'badal');
     const sessionEarnings =
       regularSessions.length * (RATE_PER_SESSION || 7500) +
       badalSessions.length * (RATE_PER_BADAL_SESSION || 3000);
 
     // 2. Uang Transport (calculated dynamically per day)
-    const transportData = calculateDailyTransport(teacherSessions);
-    const totalTransport = transportData.totalTransport;
+    const transportData = calculateDailyTransport ? calculateDailyTransport(teacherSessions) : { totalTransport: 0, dailyBreakdown: [] };
+    const totalTransport = transportData?.totalTransport || 0;
 
     // 3. Tunjangan Jabatan
-    const activeJabatanList = teacher.jabatan || ['Wali Kelas'];
-    const totalTunjanganJabatan = activeJabatanList.reduce((sum, j) => sum + getJabatanAllowance(j), 0);
+    const activeJabatanList = Array.isArray(teacher.jabatan) && teacher.jabatan.length > 0
+      ? teacher.jabatan
+      : typeof teacher.jabatan === 'string'
+      ? [teacher.jabatan]
+      : ['Wali Kelas'];
+    const totalTunjanganJabatan = activeJabatanList.reduce((sum, j) => sum + (getJabatanAllowance ? getJabatanAllowance(j) : 0), 0);
 
     // 4. Grand Total
     const grandTotal = sessionEarnings + totalTransport + totalTunjanganJabatan;
 
     return {
       teacher,
-      name: teacher.name,
-      phone: teacher.phone,
+      name: teacher.name || 'Guru',
+      phone: teacher.phone || '-',
       activeJabatanList,
       sessionsCount,
       regularSessionsCount: regularSessions.length,
@@ -191,7 +203,7 @@ export default function AdminDashboard() {
       grandTotal,
       teacherSessions,
     };
-  });
+  }).filter(Boolean);
 
   const totalPayrollBudget = payrollDataList.reduce((acc, curr) => acc + curr.grandTotal, 0);
   const totalSchoolSessions = payrollDataList.reduce((acc, curr) => acc + curr.sessionsCount, 0);
@@ -399,22 +411,22 @@ export default function AdminDashboard() {
   // ==============================================================
   // 3. DETAIL GURU & MENGAJAR (TEACHING HISTORY LOG) COMPUTATIONS
   // ==============================================================
-  const currentDetailTeacher = selectedTeacherForDetail || teachers[0];
+  const currentDetailTeacher = selectedTeacherForDetail || (teachers && teachers.length > 0 ? teachers[0] : null);
 
-  const currentTeacherSessions = completedSessions.filter((s) => {
-    if (!currentDetailTeacher) return false;
+  const currentTeacherSessions = (completedSessions || []).filter((s) => {
+    if (!currentDetailTeacher || !s) return false;
     const matchPhone = normalizePhone(s.teacherPhone) === normalizePhone(currentDetailTeacher.phone);
     const matchName = s.teacherName && currentDetailTeacher.name && s.teacherName.toLowerCase() === currentDetailTeacher.name.toLowerCase();
     const matchPeriod = !s.period || !selectedMonth || s.period === selectedMonth;
     return (matchPhone || matchName) && matchPeriod;
   });
 
-  const detailRegularSessions = currentTeacherSessions.filter((s) => !s.isBadal && s.type !== 'badal');
-  const detailBadalSessions = currentTeacherSessions.filter((s) => s.isBadal || s.type === 'badal');
+  const detailRegularSessions = currentTeacherSessions.filter((s) => !s?.isBadal && s?.type !== 'badal');
+  const detailBadalSessions = currentTeacherSessions.filter((s) => s?.isBadal || s?.type === 'badal');
   const detailSessionEarnings =
     detailRegularSessions.length * (RATE_PER_SESSION || 7500) +
     detailBadalSessions.length * (RATE_PER_BADAL_SESSION || 3000);
-  const detailTransportData = calculateDailyTransport(currentTeacherSessions);
+  const detailTransportData = calculateDailyTransport ? calculateDailyTransport(currentTeacherSessions) : { totalTransport: 0, dailyBreakdown: [] };
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-full pb-10">
@@ -970,7 +982,8 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {payrollDataList.map((item) => (
+                    {payrollDataList.length > 0 ? (
+                      payrollDataList.map((item) => (
                       <tr key={item.phone || item.name} className="hover:bg-slate-50/80 transition">
                         {/* Column 1: Nama Guru & Reset Password Button */}
                         <td className="py-3 px-3.5">
@@ -1054,7 +1067,16 @@ export default function AdminDashboard() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="text-center py-10 text-xs text-slate-400">
+                          <Wallet className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                          <p className="font-bold text-slate-600">Belum Ada Data Guru Terdaftar</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Rekapitulasi gaji akan muncul otomatis setelah akun guru didaftarkan.</p>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1083,16 +1105,20 @@ export default function AdminDashboard() {
                 <select
                   value={currentDetailTeacher?.phone || ''}
                   onChange={(e) => {
-                    const found = teachers.find((t) => t.phone === e.target.value);
+                    const found = (teachers || []).find((t) => t?.phone === e.target.value);
                     if (found) setSelectedTeacherForDetail(found);
                   }}
                   className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-brand-500 outline-none cursor-pointer max-w-[200px]"
                 >
-                  {teachers.map((t) => (
-                    <option key={t.phone} value={t.phone}>
-                      {t.name}
-                    </option>
-                  ))}
+                  {teachers && teachers.length > 0 ? (
+                    teachers.map((t) => (
+                      <option key={t?.phone || t?.name} value={t?.phone}>
+                        {t?.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">(Belum Ada Guru)</option>
+                  )}
                 </select>
 
                 {/* Period Selector */}
@@ -1116,18 +1142,23 @@ export default function AdminDashboard() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-500 text-white flex items-center justify-center font-black text-base shadow-sm">
-                      {currentDetailTeacher.name.charAt(0)}
+                      {currentDetailTeacher.name?.charAt(0) || 'G'}
                     </div>
                     <div>
                       <h4 className="font-black text-base text-slate-800">
-                        {currentDetailTeacher.name}
+                        {currentDetailTeacher.name || 'Guru'}
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        📱 {currentDetailTeacher.phone} • NIP: {currentDetailTeacher.nip || '-'}
+                        📱 {currentDetailTeacher.phone || '-'} • NIP: {currentDetailTeacher.nip || '-'}
                       </p>
                       {/* Active Jabatan Badges */}
                       <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                        {(currentDetailTeacher.jabatan || ['Wali Kelas']).map((j) => (
+                        {(Array.isArray(currentDetailTeacher.jabatan) && currentDetailTeacher.jabatan.length > 0
+                          ? currentDetailTeacher.jabatan
+                          : typeof currentDetailTeacher.jabatan === 'string'
+                          ? [currentDetailTeacher.jabatan]
+                          : ['Wali Kelas']
+                        ).map((j) => (
                           <span
                             key={j}
                             className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold"
