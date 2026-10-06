@@ -73,7 +73,7 @@ export default function SalaryEditModal({ isOpen, onClose, slip }) {
             <Edit3 className="w-5 h-5 text-emerald-100" />
             <div>
               <h3 className="font-bold text-sm">Kelola Data Slip Gaji</h3>
-              <p className="text-[11px] text-emerald-100/90">{slip.teacherName} • {slip.period}</p>
+              <p className="text-[11px] text-emerald-100/90">{slip?.teacherName || 'Guru'} • {slip?.period || '-'}</p>
             </div>
           </div>
           <button

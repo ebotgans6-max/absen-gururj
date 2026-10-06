@@ -119,9 +119,13 @@ export const AppProvider = ({ children }) => {
     if (saved) {
       try {
         const user = JSON.parse(saved);
+        if (!user || typeof user !== 'object') {
+          localStorage.removeItem('guru_rj_current_user_v2');
+          return null;
+        }
         if (
-          DUMMY_TEACHER_NAMES.includes(user.name) ||
-          DUMMY_TEACHER_PHONES.includes(normalizePhone(user.phone))
+          (user.name && DUMMY_TEACHER_NAMES.includes(user.name)) ||
+          (user.phone && DUMMY_TEACHER_PHONES.includes(normalizePhone(user.phone)))
         ) {
           localStorage.removeItem('guru_rj_current_user_v2');
           return null;

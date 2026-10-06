@@ -76,15 +76,15 @@ export default function PrintSlipModal({ isOpen, onClose, slip, teacher }) {
           <div className="grid grid-cols-2 gap-3 mb-5 p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-xs">
             <div>
               <p className="text-slate-400 text-[10px]">Nama Tenaga Pengajar</p>
-              <p className="font-bold text-slate-800 text-sm mt-0.5">{slip.teacherName}</p>
+              <p className="font-bold text-slate-800 text-sm mt-0.5">{slip?.teacherName || 'Bapak/Ibu Guru'}</p>
               <p className="text-slate-400 text-[10px] mt-1.5">No. HP / Kontak</p>
               <p className="font-medium text-slate-700 text-xs">
-                {slip.teacherPhone || slip.teacherEmail || '-'}
+                {slip?.teacherPhone || slip?.teacherEmail || '-'}
               </p>
             </div>
             <div className="text-right">
               <p className="text-slate-400 text-[10px]">Periode Gaji</p>
-              <p className="font-bold text-brand-700 text-sm mt-0.5">{slip.period}</p>
+              <p className="font-bold text-brand-700 text-sm mt-0.5">{slip?.period || '-'}</p>
               <p className="text-slate-400 text-[10px] mt-1.5">Nomor Referensi</p>
               <p className="font-mono text-slate-600 text-xs font-semibold">
                 {slip.id?.toUpperCase() || 'SLIP-RJ-2026'}

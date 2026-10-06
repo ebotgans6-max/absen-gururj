@@ -508,7 +508,7 @@ export default function TeacherDashboard() {
                   Jabatan
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-1 leading-snug line-clamp-2">
-                  {(currentUser?.jabatan && currentUser.jabatan.join(', ')) || 'Wali Kelas'}
+                  {(Array.isArray(currentUser?.jabatan) ? currentUser.jabatan.join(', ') : (currentUser?.jabatan || 'Wali Kelas'))}
                 </p>
               </div>
 
