@@ -1,29 +1,17 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from 'firebase/auth';
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
-// Firebase configuration
-// Can be customized with environment variables or direct config
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForGuruRJ2026AppTesting",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "guru-rj-app.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "guru-rj-app",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "guru-rj-app.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1029384756",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1029384756:web:abcdef123456",
+  apiKey: "AIzaSyBDZHbATm38aK95RkkkQrf9mNqHDyXow-E",
+  authDomain: "absen-guru-7db66.firebaseapp.com",
+  projectId: "absen-guru-7db66",
+  storageBucket: "absen-guru-7db66.firebasestorage.app",
+  messagingSenderId: "854307793368",
+  appId: "1:854307793368:web:cacda954590c07270c6aad"
 };
 
-// Initialize Firebase
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const db = getFirestore(app);
 export const auth = getAuth(app);
-
-// Check if Firebase is configured with custom real credentials
-export const isRealFirebaseConfigured = () => {
-  return (
-    import.meta.env.VITE_FIREBASE_API_KEY &&
-    !import.meta.env.VITE_FIREBASE_API_KEY.includes("Dummy")
-  );
-};
+export const isRealFirebaseConfigured = () => true;

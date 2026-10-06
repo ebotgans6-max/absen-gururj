@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  getDoc,
+  getDocs,
+} from 'firebase/firestore';
+import { db } from '../firebase/config';
+import {
   INITIAL_TEACHERS,
   DEFAULT_TEACHER_PASSWORD,
   INITIAL_SCHEDULES,
@@ -21,6 +31,18 @@ import {
 } from '../data/initialData';
 
 const AppContext = createContext();
+
+// Helper to remove any `undefined` values before saving to Firestore
+const sanitizeForFirestore = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const clean = Array.isArray(obj) ? [] : {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== undefined) {
+      clean[k] = typeof v === 'object' && v !== null ? sanitizeForFirestore(v) : v;
+    }
+  }
+  return clean;
+};
 
 export const AppProvider = ({ children }) => {
   // 1. Toast Notification State
@@ -47,7 +69,7 @@ export const AppProvider = ({ children }) => {
   const DUMMY_TEACHER_NAMES = ['Lilis Suryani', 'Anggita Rahmawati', 'Vanessa', 'Husnul Khotimah'];
   const DUMMY_TEACHER_PHONES = ['081234567890', '081398765432', '085711223344', '082155667788'];
 
-  // 2. Teachers Master Data
+  // 2. Teachers Master Data (Synced with Firestore 'teachers')
   const [teachers, setTeachers] = useState(() => {
     const saved = localStorage.getItem('guru_rj_teachers_v2');
     if (saved) {
@@ -69,13 +91,12 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('guru_rj_teachers_v2', JSON.stringify(teachers));
   }, [teachers]);
 
-  // 3. Registered Users with Phone as primary credential
+  // 3. Registered Users with Phone as primary credential (Synced with Firestore 'users')
   const [registeredUsers, setRegisteredUsers] = useState(() => {
     const saved = localStorage.getItem('guru_rj_users_v2');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Purge dummy demo teachers from registered users database
         return parsed.filter(
           (u) =>
             !DUMMY_TEACHER_NAMES.includes(u.name) &&
@@ -85,7 +106,6 @@ export const AppProvider = ({ children }) => {
         console.error('Error reading registered users from localStorage', e);
       }
     }
-
     return [];
   });
 
@@ -93,13 +113,12 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('guru_rj_users_v2', JSON.stringify(registeredUsers));
   }, [registeredUsers]);
 
-  // 4. Current Logged-in User
+  // 4. Current Logged-in User (Per-device session in localStorage)
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('guru_rj_current_user_v2');
     if (saved) {
       try {
         const user = JSON.parse(saved);
-        // If current user is a dummy teacher, clear from storage
         if (
           DUMMY_TEACHER_NAMES.includes(user.name) ||
           DUMMY_TEACHER_PHONES.includes(normalizePhone(user.phone))
@@ -107,7 +126,6 @@ export const AppProvider = ({ children }) => {
           localStorage.removeItem('guru_rj_current_user_v2');
           return null;
         }
-        // Re-evaluate role strictly based on registered Jabatan (Kepala Sekolah -> admin, else teacher)
         const expectedRole = isKepalaSekolah(user.jabatan) ? 'admin' : 'teacher';
         if (user.role !== expectedRole) {
           user.role = expectedRole;
@@ -129,7 +147,7 @@ export const AppProvider = ({ children }) => {
     }
   }, [currentUser]);
 
-  // 5. Attendance Records
+  // 5. Attendance Records (Synced with Firestore 'attendance')
   const [attendance, setAttendance] = useState(() => {
     const saved = localStorage.getItem('guru_rj_attendance_v2');
     if (saved) {
@@ -151,7 +169,7 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('guru_rj_attendance_v2', JSON.stringify(attendance));
   }, [attendance]);
 
-  // 6. Salary Slips
+  // 6. Salary Slips (Synced with Firestore 'salarySlips')
   const [salarySlips, setSalarySlips] = useState(() => {
     const saved = localStorage.getItem('guru_rj_salary_slips_v2');
     if (saved) {
@@ -173,7 +191,7 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('guru_rj_salary_slips_v2', JSON.stringify(salarySlips));
   }, [salarySlips]);
 
-  // 7. Teaching Schedules
+  // 7. Teaching Schedules (Synced with Firestore 'schedules')
   const [schedules, setSchedules] = useState(() => {
     const saved = localStorage.getItem('guru_rj_schedules_v2');
     if (saved) {
@@ -193,7 +211,7 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('guru_rj_schedules_v2', JSON.stringify(schedules));
   }, [schedules]);
 
-  // 8. Completed Teaching Sessions (Ceklis Mapel Selesai Diajar)
+  // 8. Completed Teaching Sessions (Synced with Firestore 'completedSessions')
   const [completedSessions, setCompletedSessions] = useState(() => {
     const saved = localStorage.getItem('guru_rj_completed_sessions_v2');
     if (saved) {
@@ -215,6 +233,186 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('guru_rj_completed_sessions_v2', JSON.stringify(completedSessions));
   }, [completedSessions]);
 
+  // =========================================================================
+  // REAL-TIME FIRESTORE SYNCHRONIZATION (onSnapshot + Initial Auto-Migration)
+  // =========================================================================
+  useEffect(() => {
+    // 1. One-time Migration from localStorage to Firestore (if local data exists)
+    const runMigration = async () => {
+      try {
+        const savedUsers = localStorage.getItem('guru_rj_users_v2');
+        if (savedUsers) {
+          const list = JSON.parse(savedUsers);
+          for (const u of list) {
+            if (u.phone) {
+              const norm = normalizePhone(u.phone);
+              await setDoc(doc(db, 'users', norm), sanitizeForFirestore({ ...u, phone: norm }), { merge: true });
+            }
+          }
+        }
+
+        const savedTeachers = localStorage.getItem('guru_rj_teachers_v2');
+        if (savedTeachers) {
+          const list = JSON.parse(savedTeachers);
+          for (const t of list) {
+            if (t.phone) {
+              const norm = normalizePhone(t.phone);
+              await setDoc(doc(db, 'teachers', norm), sanitizeForFirestore({ ...t, phone: norm }), { merge: true });
+            }
+          }
+        }
+
+        const savedAtt = localStorage.getItem('guru_rj_attendance_v2');
+        if (savedAtt) {
+          const list = JSON.parse(savedAtt);
+          for (const a of list) {
+            if (a.id) {
+              await setDoc(doc(db, 'attendance', a.id), sanitizeForFirestore(a), { merge: true });
+            }
+          }
+        }
+
+        const savedSessions = localStorage.getItem('guru_rj_completed_sessions_v2');
+        if (savedSessions) {
+          const list = JSON.parse(savedSessions);
+          for (const s of list) {
+            if (s.id) {
+              await setDoc(doc(db, 'completedSessions', s.id), sanitizeForFirestore(s), { merge: true });
+            }
+          }
+        }
+
+        const savedSlips = localStorage.getItem('guru_rj_salary_slips_v2');
+        if (savedSlips) {
+          const list = JSON.parse(savedSlips);
+          for (const slip of list) {
+            if (slip.id) {
+              await setDoc(doc(db, 'salarySlips', slip.id), sanitizeForFirestore(slip), { merge: true });
+            }
+          }
+        }
+
+        const savedSched = localStorage.getItem('guru_rj_schedules_v2');
+        if (savedSched) {
+          const map = JSON.parse(savedSched);
+          for (const [phone, items] of Object.entries(map)) {
+            const norm = normalizePhone(phone);
+            await setDoc(doc(db, 'schedules', norm), sanitizeForFirestore({ phone: norm, items }), { merge: true });
+          }
+        }
+      } catch (err) {
+        console.warn('Initial Firestore sync/migration note:', err);
+      }
+    };
+
+    runMigration();
+
+    // 2. Real-time Firestore Listeners (Web & Android Sync in Real-Time)
+    const unsubUsers = onSnapshot(
+      collection(db, 'users'),
+      (snapshot) => {
+        const list = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.phone))) {
+            list.push(data);
+          }
+        });
+        setRegisteredUsers(list);
+      },
+      (err) => console.warn('Firestore users listener error:', err)
+    );
+
+    const unsubTeachers = onSnapshot(
+      collection(db, 'teachers'),
+      (snapshot) => {
+        const list = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.phone))) {
+            list.push(data);
+          }
+        });
+        setTeachers(list);
+      },
+      (err) => console.warn('Firestore teachers listener error:', err)
+    );
+
+    const unsubAttendance = onSnapshot(
+      collection(db, 'attendance'),
+      (snapshot) => {
+        const list = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.teacherPhone))) {
+            list.push(data);
+          }
+        });
+        list.sort((a, b) => ((b.date || '') + (b.time || '')).localeCompare((a.date || '') + (a.time || '')));
+        setAttendance(list);
+      },
+      (err) => console.warn('Firestore attendance listener error:', err)
+    );
+
+    const unsubSessions = onSnapshot(
+      collection(db, 'completedSessions'),
+      (snapshot) => {
+        const list = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.teacherPhone))) {
+            list.push(data);
+          }
+        });
+        setCompletedSessions(list);
+      },
+      (err) => console.warn('Firestore completedSessions listener error:', err)
+    );
+
+    const unsubSlips = onSnapshot(
+      collection(db, 'salarySlips'),
+      (snapshot) => {
+        const list = [];
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.teacherPhone))) {
+            list.push(data);
+          }
+        });
+        setSalarySlips(list);
+      },
+      (err) => console.warn('Firestore salarySlips listener error:', err)
+    );
+
+    const unsubSchedules = onSnapshot(
+      collection(db, 'schedules'),
+      (snapshot) => {
+        const map = {};
+        snapshot.forEach((d) => {
+          const data = d.data();
+          if (data && data.phone) {
+            map[data.phone] = data.items || [];
+          }
+        });
+        setSchedules(map);
+      },
+      (err) => console.warn('Firestore schedules listener error:', err)
+    );
+
+    return () => {
+      unsubUsers();
+      unsubTeachers();
+      unsubAttendance();
+      unsubSessions();
+      unsubSlips();
+      unsubSchedules();
+    };
+  }, []);
+
+  // =========================================================================
+  // APP ACTIONS & FIRESTORE REAL-TIME MUTATIONS
+  // =========================================================================
+
   // Toggle Teaching Session Completion
   const toggleTeachingSession = (sessionParams, teacherUser) => {
     const teacher = teacherUser || currentUser;
@@ -233,7 +431,6 @@ export const AppProvider = ({ children }) => {
       date = getTodayDateString(),
     } = sessionParams;
 
-    // Validation for date being claimed: evaluate attendance specifically for that date
     const today = getTodayDateString();
     if (teacher.role !== 'admin') {
       const normTeacherPhone = normalizePhone(teacher.phone);
@@ -274,7 +471,9 @@ export const AppProvider = ({ children }) => {
 
     if (existingIndex !== -1) {
       const existing = completedSessions[existingIndex];
-      const isOwner = normalizePhone(existing.teacherPhone) === normalizePhone(teacher.phone) || teacher.role === 'admin';
+      const isOwner =
+        normalizePhone(existing.teacherPhone) === normalizePhone(teacher.phone) ||
+        teacher.role === 'admin';
 
       if (!isOwner) {
         showToast(
@@ -289,11 +488,13 @@ export const AppProvider = ({ children }) => {
       const updated = [...completedSessions];
       updated.splice(existingIndex, 1);
       setCompletedSessions(updated);
-      showToast(
-        `Klaim sesi ${className} • ${subject} dibatalkan.`,
-        'info',
-        'Sesi Dibatalkan'
+
+      // Delete from Firestore
+      deleteDoc(doc(db, 'completedSessions', existing.id)).catch((err) =>
+        console.error('Firestore delete session error:', err)
       );
+
+      showToast(`Klaim sesi ${className} • ${subject} dibatalkan.`, 'info', 'Sesi Dibatalkan');
       return { success: true, action: 'unclaimed' };
     }
 
@@ -311,10 +512,16 @@ export const AppProvider = ({ children }) => {
       teacherName: teacher.name,
       rate: RATE_PER_SESSION,
       period: getPeriodFromDate(date) || 'September 2026',
-      completedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+      completedAt:
+        new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
     };
 
     setCompletedSessions((prev) => [newSession, ...prev]);
+
+    // Save to Firestore
+    setDoc(doc(db, 'completedSessions', newSession.id), sanitizeForFirestore(newSession)).catch((err) =>
+      console.error('Firestore save session error:', err)
+    );
 
     try {
       confetti({
@@ -334,7 +541,7 @@ export const AppProvider = ({ children }) => {
     return { success: true, action: 'claimed', session: newSession };
   };
 
-  // Claim Substitute Teaching Session (Klaim Jam Badal - Special Rate Rp 3.000)
+  // Claim Substitute Teaching Session (Jam Badal)
   const claimBadalSession = (badalData, teacherUser) => {
     const teacher = teacherUser || currentUser;
     if (!teacher) {
@@ -342,12 +549,7 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const {
-      date = getTodayDateString(),
-      className,
-      subject,
-      notes = '',
-    } = badalData;
+    const { date = getTodayDateString(), className, subject, notes = '' } = badalData;
 
     if (!className?.trim() || !subject?.trim()) {
       showToast('Mohon lengkapi Kelas dan Mata Pelajaran yang digantikan.', 'error', 'Data Belum Lengkap');
@@ -371,10 +573,16 @@ export const AppProvider = ({ children }) => {
       teacherName: teacher.name,
       rate: RATE_PER_BADAL_SESSION, // Rp 3.000
       period: getPeriodFromDate(cleanDate) || 'September 2026',
-      completedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+      completedAt:
+        new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
     };
 
     setCompletedSessions((prev) => [newBadalSession, ...prev]);
+
+    // Save to Firestore
+    setDoc(doc(db, 'completedSessions', newBadalSession.id), sanitizeForFirestore(newBadalSession)).catch(
+      (err) => console.error('Firestore save badal error:', err)
+    );
 
     try {
       confetti({
@@ -396,12 +604,20 @@ export const AppProvider = ({ children }) => {
 
   // Delete / cancel a badal session
   const deleteBadalSession = (sessionId) => {
+    const target = completedSessions.find((s) => s.id === sessionId || s.sessionId === sessionId);
     setCompletedSessions((prev) => prev.filter((s) => s.id !== sessionId && s.sessionId !== sessionId));
+
+    if (target) {
+      deleteDoc(doc(db, 'completedSessions', target.id)).catch((err) =>
+        console.error('Firestore delete badal error:', err)
+      );
+    }
+
     showToast('Klaim sesi badal berhasil dibatalkan.', 'info', 'Badal Dihapus');
     return { success: true };
   };
 
-  // Helper to calculate teacher salary with separated regular & badal sessions
+  // Helper to calculate teacher salary
   const calculateTeacherSalary = (teacherPhone, period) => {
     const norm = normalizePhone(teacherPhone || currentUser?.phone);
     const teacher =
@@ -454,31 +670,25 @@ export const AppProvider = ({ children }) => {
       totalHonorBadal,
       transportData,
       totalTransport,
+      activeJabatan,
       totalTunjanganJabatan,
       grandTotalSalary,
     };
   };
 
-  // Helper to get completed sessions for teacher
-  const getTeacherCompletedSessions = (teacherPhone, period = 'September 2026') => {
+  const getTeacherCompletedSessions = (teacherPhone, period) => {
     const norm = normalizePhone(teacherPhone || currentUser?.phone);
     return completedSessions.filter(
       (s) => normalizePhone(s.teacherPhone) === norm && (!period || s.period === period)
     );
   };
 
-  // Helper to check user by phone
   const findUserByPhone = (rawPhone) => {
     const norm = normalizePhone(rawPhone);
     return registeredUsers.find((u) => normalizePhone(u.phone) === norm);
   };
 
-  // Auth Functions - Unified Login
-  // Requirement 24: Restrict Admin Access to "Kepala Sekolah"
-  // - Stop checking against hardcoded Admin phone number
-  // - Fetch user data from database upon login and check registered "Jabatan"
-  // - If Jabatan includes "Kepala Sekolah", route to Admin Dashboard (role: 'admin')
-  // - If Jabatan does NOT include "Kepala Sekolah", route to Teacher Dashboard (role: 'teacher')
+  // Unified Login
   const login = (phone, password) => {
     const normPhone = normalizePhone(phone);
     if (!normPhone) {
@@ -516,10 +726,11 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: 'Password yang Anda masukkan salah.' };
     }
 
-    // Check user's registered Jabatan from database document
     const userJabatan = Array.isArray(existing.jabatan)
       ? existing.jabatan
-      : (typeof existing.jabatan === 'string' ? [existing.jabatan] : []);
+      : typeof existing.jabatan === 'string'
+      ? [existing.jabatan]
+      : [];
 
     const hasKepalaSekolah = isKepalaSekolah(userJabatan);
     const role = hasKepalaSekolah ? 'admin' : 'teacher';
@@ -528,15 +739,15 @@ export const AppProvider = ({ children }) => {
       name: existing.name || (role === 'admin' ? 'Kepala Sekolah' : `Guru (${normPhone.slice(-4)})`),
       phone: normPhone,
       role,
-      jabatan: userJabatan.length > 0 ? userJabatan : (role === 'admin' ? ['Kepala Sekolah'] : ['Guru Mapel']),
+      jabatan: userJabatan.length > 0 ? userJabatan : role === 'admin' ? ['Kepala Sekolah'] : ['Guru Mapel'],
     };
 
-    // Keep registered user role synchronized
     if (existing.role !== role) {
       setRegisteredUsers((prev) =>
-        prev.map((u) =>
-          normalizePhone(u.phone) === normPhone ? { ...u, role } : u
-        )
+        prev.map((u) => (normalizePhone(u.phone) === normPhone ? { ...u, role } : u))
+      );
+      setDoc(doc(db, 'users', normPhone), { role }, { merge: true }).catch((err) =>
+        console.error('Firestore update role error:', err)
       );
     }
 
@@ -551,7 +762,6 @@ export const AppProvider = ({ children }) => {
     return { success: true, user: userSession };
   };
 
-  // Requirement 17: Split Login Portal by Role (GTK vs Manajemen) via OTP
   const loginByRoleOTP = (phone, roleType = 'gtk') => {
     const normPhone = normalizePhone(phone);
     if (!normPhone) {
@@ -577,24 +787,24 @@ export const AppProvider = ({ children }) => {
     const userJabatan = existing?.jabatan || teacherMaster?.jabatan || ['Guru Mapel'];
     const hasKepalaSekolah = isKepalaSekolah(userJabatan);
 
-    // Role: Login Manajemen (Admin / Operator) -> requires Kepala Sekolah
-    if (roleType === 'manajemen') {
-      if (!hasKepalaSekolah) {
-        showToast(
-          'Akses ditolak. Hanya pemegang jabatan "Kepala Sekolah" yang memiliki hak akses Admin / Manajemen.',
-          'error',
-          'Akses Ditolak'
-        );
-        return {
-          success: false,
-          error: 'Akses ditolak. Jabatan Anda tidak mencakup "Kepala Sekolah".',
-        };
-      }
+    if (roleType === 'manajemen' && !hasKepalaSekolah) {
+      showToast(
+        'Akses ditolak. Hanya pemegang jabatan "Kepala Sekolah" yang memiliki hak akses Admin / Manajemen.',
+        'error',
+        'Akses Ditolak'
+      );
+      return {
+        success: false,
+        error: 'Akses ditolak. Jabatan Anda tidak mencakup "Kepala Sekolah".',
+      };
     }
 
     const role = hasKepalaSekolah ? 'admin' : 'teacher';
     const userSession = {
-      name: existing?.name || teacherMaster?.name || (role === 'admin' ? 'Kepala Sekolah' : `Guru (${normPhone.slice(-4)})`),
+      name:
+        existing?.name ||
+        teacherMaster?.name ||
+        (role === 'admin' ? 'Kepala Sekolah' : `Guru (${normPhone.slice(-4)})`),
       phone: normPhone,
       role,
       jabatan: userJabatan,
@@ -611,7 +821,6 @@ export const AppProvider = ({ children }) => {
     return { success: true, user: userSession };
   };
 
-  // Requirement 19: Standard Login by Role using Phone Number and Password (No OTP)
   const loginByRolePassword = (phone, password, roleType = 'gtk') => {
     const normPhone = normalizePhone(phone);
     if (!normPhone) {
@@ -646,7 +855,6 @@ export const AppProvider = ({ children }) => {
       jabatan: teacherMaster?.jabatan || ['Guru Mapel'],
     };
 
-    // Check password against registered password or default 'guru123'
     const expectedPassword = targetUser.password || DEFAULT_TEACHER_PASSWORD;
     if (expectedPassword && expectedPassword !== password) {
       showToast('Password yang Anda masukkan salah. Silakan coba lagi.', 'error', 'Gagal Masuk');
@@ -659,7 +867,6 @@ export const AppProvider = ({ children }) => {
     const userJabatan = targetUser.jabatan || ['Guru Mapel'];
     const hasKepalaSekolah = isKepalaSekolah(userJabatan);
 
-    // Role: Login Manajemen -> requires Kepala Sekolah
     if (roleType === 'manajemen' && !hasKepalaSekolah) {
       showToast(
         'Akses ditolak. Hanya pemegang jabatan "Kepala Sekolah" yang memiliki hak akses Admin / Manajemen.',
@@ -691,6 +898,7 @@ export const AppProvider = ({ children }) => {
     return { success: true, user: userSession };
   };
 
+  // Register New User (Saves in Firestore 'users', 'teachers', 'schedules', 'salarySlips')
   const register = (fullName, phone, password, jabatan = ['Guru Mapel'], autoLogin = false) => {
     const normPhone = normalizePhone(phone);
     if (!normPhone || normPhone.length < 9) {
@@ -698,7 +906,6 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: 'Nomor HP tidak valid' };
     }
 
-    // Validation Rules: A teacher MUST select a minimum of 1 position, and a MAXIMUM of 5 positions.
     const selectedJabatan = Array.isArray(jabatan) && jabatan.length > 0 ? jabatan : ['Guru Mapel'];
     if (selectedJabatan.length < 1 || selectedJabatan.length > 5) {
       showToast('Pilih minimal 1 jabatan dan maksimal 5 jabatan.', 'error', 'Validasi Jabatan');
@@ -711,7 +918,6 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: 'Nomor HP sudah terdaftar' };
     }
 
-    // Determine role based on selected jabatan containing 'Kepala Sekolah' (Requirement 24)
     const hasKepalaSekolah = isKepalaSekolah(selectedJabatan);
     const role = hasKepalaSekolah ? 'admin' : 'teacher';
 
@@ -721,12 +927,17 @@ export const AppProvider = ({ children }) => {
       password: password || '123456',
       role,
       jabatan: selectedJabatan,
+      createdAt: new Date().toISOString(),
     };
 
-    // Correctly saves the selected Jabatan to the user's database document
     setRegisteredUsers((prev) => [...prev, newUser]);
 
-    // If teacher, add to master teachers list
+    // Save user to Firestore
+    setDoc(doc(db, 'users', normPhone), sanitizeForFirestore(newUser)).catch((err) =>
+      console.error('Firestore register user error:', err)
+    );
+
+    // If teacher, add to master teachers list and create initial schedule & salary slip
     if (role === 'teacher') {
       const newTeacher = {
         id: `t-${Date.now()}`,
@@ -740,18 +951,23 @@ export const AppProvider = ({ children }) => {
         status: 'Tetap',
       };
       setTeachers((prev) => [...prev, newTeacher]);
+      setDoc(doc(db, 'teachers', normPhone), sanitizeForFirestore(newTeacher)).catch((err) =>
+        console.error('Firestore register teacher error:', err)
+      );
 
-      // Assign default sample schedule
+      const defaultSchedules = [
+        { id: `s-${Date.now()}-1`, day: 'Senin', time: '08:00 - 09:30', subject: 'Mata Pelajaran Terpadu', class: 'Kelas X-A', room: 'R. 101' },
+        { id: `s-${Date.now()}-2`, day: 'Rabu', time: '09:45 - 11:15', subject: 'Mata Pelajaran Terpadu', class: 'Kelas XI-B', room: 'R. 203' },
+        { id: `s-${Date.now()}-3`, day: 'Kamis', time: '07:30 - 09:00', subject: 'Praktek Terbimbing', class: 'Kelas XII-A', room: 'Lab Serbaguna' },
+      ];
       setSchedules((prev) => ({
         ...prev,
-        [normPhone]: [
-          { id: `s-${Date.now()}-1`, day: 'Senin', time: '08:00 - 09:30', subject: 'Mata Pelajaran Terpadu', class: 'Kelas X-A', room: 'R. 101' },
-          { id: `s-${Date.now()}-2`, day: 'Rabu', time: '09:45 - 11:15', subject: 'Mata Pelajaran Terpadu', class: 'Kelas XI-B', room: 'R. 203' },
-          { id: `s-${Date.now()}-3`, day: 'Kamis', time: '07:30 - 09:00', subject: 'Praktek Terbimbing', class: 'Kelas XII-A', room: 'Lab Serbaguna' },
-        ],
+        [normPhone]: defaultSchedules,
       }));
+      setDoc(doc(db, 'schedules', normPhone), sanitizeForFirestore({ phone: normPhone, items: defaultSchedules })).catch((err) =>
+        console.error('Firestore register schedule error:', err)
+      );
 
-      // Generate default salary slip for current month
       const newSlip = {
         id: `slip-${Date.now()}`,
         teacherPhone: normPhone,
@@ -769,6 +985,9 @@ export const AppProvider = ({ children }) => {
         status: 'Sudah Terbit',
       };
       setSalarySlips((prev) => [newSlip, ...prev]);
+      setDoc(doc(db, 'salarySlips', newSlip.id), sanitizeForFirestore(newSlip)).catch((err) =>
+        console.error('Firestore register salary slip error:', err)
+      );
     }
 
     const userSession = {
@@ -816,6 +1035,14 @@ export const AppProvider = ({ children }) => {
       setCurrentUser((prev) => ({ ...prev, ...updatedFields, ...roleUpdate }));
     }
 
+    // Update in Firestore
+    setDoc(doc(db, 'users', norm), sanitizeForFirestore({ ...updatedFields, ...roleUpdate }), { merge: true }).catch((err) =>
+      console.error('Firestore update user profile error:', err)
+    );
+    setDoc(doc(db, 'teachers', norm), sanitizeForFirestore({ ...updatedFields, ...roleUpdate }), { merge: true }).catch((err) =>
+      console.error('Firestore update teacher profile error:', err)
+    );
+
     showToast('Profil & jabatan berhasil diperbarui.', 'success', 'Profil Disimpan');
     return { success: true };
   };
@@ -837,12 +1064,17 @@ export const AppProvider = ({ children }) => {
     };
 
     setRegisteredUsers(updatedUsers);
+
+    // Save in Firestore
+    setDoc(doc(db, 'users', normPhone), { password: newPassword }, { merge: true }).catch((err) =>
+      console.error('Firestore reset password error:', err)
+    );
+
     showToast('Password berhasil diperbarui! Silakan masuk dengan password baru Anda.', 'success', 'Reset Berhasil');
     return { success: true };
   };
 
-  // Requirement 41: Admin Reset Password Feature
-  // Resets teacher's password back to 'guru123' in the global state
+  // Admin Reset Password Feature
   const adminResetPassword = (teacherPhone) => {
     const normPhone = normalizePhone(teacherPhone);
     let targetName = '';
@@ -851,7 +1083,6 @@ export const AppProvider = ({ children }) => {
     const teacherInRegistered = registeredUsers.find((u) => normalizePhone(u.phone) === normPhone);
     targetName = teacherInMaster?.name || teacherInRegistered?.name || teacherPhone;
 
-    // 1. Update in registeredUsers
     setRegisteredUsers((prev) => {
       const exists = prev.some((u) => normalizePhone(u.phone) === normPhone);
       if (exists) {
@@ -874,17 +1105,23 @@ export const AppProvider = ({ children }) => {
       return prev;
     });
 
-    // 2. Update in teachers master list
     setTeachers((prev) =>
       prev.map((t) =>
         normalizePhone(t.phone) === normPhone ? { ...t, password: DEFAULT_TEACHER_PASSWORD } : t
       )
     );
 
-    // 3. Update current session if currently viewing as that teacher
     if (currentUser && normalizePhone(currentUser.phone) === normPhone) {
       setCurrentUser((prev) => ({ ...prev, password: DEFAULT_TEACHER_PASSWORD }));
     }
+
+    // Persist in Firestore
+    setDoc(doc(db, 'users', normPhone), { password: DEFAULT_TEACHER_PASSWORD }, { merge: true }).catch((err) =>
+      console.error('Firestore admin reset password user error:', err)
+    );
+    setDoc(doc(db, 'teachers', normPhone), { password: DEFAULT_TEACHER_PASSWORD }, { merge: true }).catch((err) =>
+      console.error('Firestore admin reset password teacher error:', err)
+    );
 
     showToast(`Password untuk ${targetName} berhasil di-reset ke "${DEFAULT_TEACHER_PASSWORD}".`, 'success', 'Password Direset');
     return { success: true };
@@ -905,39 +1142,32 @@ export const AppProvider = ({ children }) => {
       return { success: false, error: 'Nomor sama' };
     }
 
-    // Check if new phone is already registered to another user
     const existing = registeredUsers.find((u) => normalizePhone(u.phone) === normNew);
     if (existing) {
       showToast('Nomor HP baru sudah terdaftar untuk pengguna lain.', 'error', 'Nomor Sudah Digunakan');
       return { success: false, error: 'Nomor HP sudah terdaftar' };
     }
 
-    // 1. Update registeredUsers
     setRegisteredUsers((prev) =>
       prev.map((u) => (normalizePhone(u.phone) === normOld ? { ...u, phone: normNew } : u))
     );
 
-    // 2. Update teachers master data
     setTeachers((prev) =>
       prev.map((t) => (normalizePhone(t.phone) === normOld ? { ...t, phone: normNew } : t))
     );
 
-    // 3. Update attendance history
     setAttendance((prev) =>
       prev.map((a) => (normalizePhone(a.teacherPhone) === normOld ? { ...a, teacherPhone: normNew } : a))
     );
 
-    // 4. Update completed teaching sessions
     setCompletedSessions((prev) =>
       prev.map((s) => (normalizePhone(s.teacherPhone) === normOld ? { ...s, teacherPhone: normNew } : s))
     );
 
-    // 5. Update salary slips
     setSalarySlips((prev) =>
       prev.map((slip) => (normalizePhone(slip.teacherPhone) === normOld ? { ...slip, teacherPhone: normNew } : slip))
     );
 
-    // 6. Update schedules map if keyed by phone
     setSchedules((prev) => {
       if (!prev[normOld]) return prev;
       const copy = { ...prev };
@@ -946,36 +1176,59 @@ export const AppProvider = ({ children }) => {
       return copy;
     });
 
-    // 7. Update active currentUser session
     if (currentUser && normalizePhone(currentUser.phone) === normOld) {
       setCurrentUser((prev) => ({ ...prev, phone: normNew }));
     }
 
-    showToast(`Nomor HP berhasil diperbarui menjadi ${normNew}!`, 'success', 'Nomor HP Diperbarui');
-    return { success: true };
+    // Asynchronously update in Firestore
+    (async () => {
+      try {
+        const oldUser = await getDoc(doc(db, 'users', normOld));
+        if (oldUser.exists()) {
+          await setDoc(doc(db, 'users', normNew), sanitizeForFirestore({ ...oldUser.data(), phone: normNew }));
+          await deleteDoc(doc(db, 'users', normOld));
+        }
+        const oldTeacher = await getDoc(doc(db, 'teachers', normOld));
+        if (oldTeacher.exists()) {
+          await setDoc(doc(db, 'teachers', normNew), sanitizeForFirestore({ ...oldTeacher.data(), phone: normNew }));
+          await deleteDoc(doc(db, 'teachers', normOld));
+        }
+        const oldSched = await getDoc(doc(db, 'schedules', normOld));
+        if (oldSched.exists()) {
+          await setDoc(doc(db, 'schedules', normNew), sanitizeForFirestore({ ...oldSched.data(), phone: normNew }));
+          await deleteDoc(doc(db, 'schedules', normOld));
+        }
+      } catch (e) {
+        console.warn('Firestore phone migration error:', e);
+      }
+    })();
+
+    showToast(`Nomor HP berhasil diperbarui menjadi ${normNew}.`, 'success', 'Nomor HP Berubah');
+    return { success: true, newPhone: normNew };
   };
 
   const logout = () => {
     setCurrentUser(null);
-    showToast('Anda telah keluar dari aplikasi.', 'info', 'Logout Berhasil');
+    showToast('Anda telah berhasil keluar dari akun.', 'info', 'Logout');
   };
 
-  // Clock In (Absen Masuk: Hadir, Sakit, Izin, Lainnya, or Absen Susulan)
+  // Clock In (Absen Masuk)
   const clockIn = (teacherUser, attendanceData = {}) => {
     const today = getTodayDateString();
     const user = teacherUser || currentUser;
 
-    if (!user) return { success: false, error: 'Tidak ada pengguna aktif' };
+    if (!user) {
+      showToast('Silakan masuk terlebih dahulu untuk melakukan presensi.', 'error', 'Perlu Masuk');
+      return { success: false, error: 'Tidak ada pengguna' };
+    }
 
     const normPhone = normalizePhone(user.phone);
     const targetDate = attendanceData.date || today;
     const isBackdated = targetDate < today;
 
-    // Check if already clocked in for targetDate
-    const existingIndex = attendance.findIndex(
+    const alreadyClockedIn = attendance.find(
       (a) => normalizePhone(a.teacherPhone) === normPhone && a.date === targetDate
     );
-    const alreadyClockedIn = existingIndex >= 0 ? attendance[existingIndex] : null;
 
     if (alreadyClockedIn && !attendanceData.isUpdate) {
       showToast(
@@ -988,19 +1241,17 @@ export const AppProvider = ({ children }) => {
 
     const now = new Date();
     const timeString = isBackdated
-      ? (attendanceData.time || '07:15:00')
+      ? attendanceData.time || '07:15:00'
       : now.toTimeString().split(' ')[0];
 
     const attendanceStatus = attendanceData.attendanceStatus || 'Hadir';
     const note = (attendanceData.note || (isBackdated ? 'Absen Susulan' : '')).trim();
 
-    // Validation: if status is Sakit, Izin, or Lainnya, note is required
     if (attendanceStatus !== 'Hadir' && !note) {
       showToast('Keterangan alasan wajib diisi untuk status Sakit, Izin, atau Lainnya.', 'error', 'Keterangan Wajib Diisi');
       return { success: false, error: 'Keterangan wajib diisi' };
     }
 
-    // Hadir status simplified: pure timestamp recording with schedule awareness
     const finalStatus = attendanceStatus;
     const scheduleHours = getScheduleHoursForDate(targetDate);
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -1024,6 +1275,11 @@ export const AppProvider = ({ children }) => {
         prev.map((rec) => (rec.id === alreadyClockedIn.id ? updatedRecord : rec))
       );
 
+      // Save in Firestore
+      setDoc(doc(db, 'attendance', alreadyClockedIn.id), sanitizeForFirestore(updatedRecord), { merge: true }).catch((err) =>
+        console.error('Firestore update attendance error:', err)
+      );
+
       showToast(
         `Status presensi tanggal ${targetDate} berhasil diubah menjadi "${attendanceStatus}".`,
         'success',
@@ -1040,16 +1296,21 @@ export const AppProvider = ({ children }) => {
       date: targetDate,
       time: timeString,
       outTime: attendanceData.outTime || null,
-      attendanceStatus, // 'Hadir' | 'Sakit' | 'Izin' | 'Lainnya'
+      attendanceStatus,
       status: finalStatus,
       isLate,
       lateMinutes,
       targetInTime: scheduleHours.inLabel,
-      note, // Reason explanation
+      note,
       method: isBackdated ? 'Absen Susulan (Aplikasi)' : 'Aplikasi Guru RJ',
     };
 
     setAttendance((prev) => [newRecord, ...prev]);
+
+    // Save in Firestore
+    setDoc(doc(db, 'attendance', newRecord.id), sanitizeForFirestore(newRecord)).catch((err) =>
+      console.error('Firestore save attendance error:', err)
+    );
 
     if (attendanceStatus === 'Hadir') {
       try {
@@ -1081,7 +1342,7 @@ export const AppProvider = ({ children }) => {
     return { success: true, record: newRecord };
   };
 
-  // Clock Out (Absen Pulang: Senin-Kamis 13.45 WIB, Jumat 11.35 WIB)
+  // Clock Out (Absen Pulang)
   const clockOut = (teacherUser, outData = {}) => {
     const today = getTodayDateString();
     const user = teacherUser || currentUser;
@@ -1119,7 +1380,6 @@ export const AppProvider = ({ children }) => {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const scheduleHours = getScheduleHoursForDate(targetDate);
 
-    // Validation: Mon-Thu 13.45 WIB, Fri 11.35 WIB
     const isEarly = !outData.isBackdated && currentMinutes < scheduleHours.outMinutes;
 
     if (isEarly && !outData.allowEarly) {
@@ -1145,6 +1405,11 @@ export const AppProvider = ({ children }) => {
 
     setAttendance((prev) =>
       prev.map((rec) => (rec.id === existing.id ? updatedRecord : rec))
+    );
+
+    // Save to Firestore
+    setDoc(doc(db, 'attendance', existing.id), sanitizeForFirestore(updatedRecord), { merge: true }).catch((err) =>
+      console.error('Firestore clockOut error:', err)
     );
 
     try {
@@ -1179,9 +1444,16 @@ export const AppProvider = ({ children }) => {
     );
 
     if (existingIndex >= 0) {
+      const existing = attendance[existingIndex];
       const updated = [...attendance];
       updated.splice(existingIndex, 1);
       setAttendance(updated);
+
+      // Remove from Firestore
+      deleteDoc(doc(db, 'attendance', existing.id)).catch((err) =>
+        console.error('Firestore delete attendance error:', err)
+      );
+
       showToast(`Status presensi ${teacherName} direset menjadi Belum Hadir.`, 'info', 'Presensi Dihapus');
     } else {
       const now = new Date();
@@ -1200,6 +1472,12 @@ export const AppProvider = ({ children }) => {
         method: 'Verifikasi Admin',
       };
       setAttendance((prev) => [newRec, ...prev]);
+
+      // Save to Firestore
+      setDoc(doc(db, 'attendance', newRec.id), sanitizeForFirestore(newRec)).catch((err) =>
+        console.error('Firestore admin mark attendance error:', err)
+      );
+
       showToast(`Presensi ${teacherName} berhasil ditandai ${attendanceStatus} (${timeString} WIB).`, 'success', 'Presensi Berhasil');
     }
   };
@@ -1208,15 +1486,27 @@ export const AppProvider = ({ children }) => {
     setSalarySlips((prev) =>
       prev.map((slip) => (slip.id === slipId ? { ...slip, ...updatedFields } : slip))
     );
+
+    // Save in Firestore
+    setDoc(doc(db, 'salarySlips', slipId), sanitizeForFirestore(updatedFields), { merge: true }).catch((err) =>
+      console.error('Firestore update salary slip error:', err)
+    );
+
     showToast('Data slip gaji berhasil diperbarui.', 'success', 'Slip Gaji Disimpan');
   };
 
   const createSalarySlip = (newSlip) => {
     setSalarySlips((prev) => [newSlip, ...prev]);
+
+    // Save in Firestore
+    setDoc(doc(db, 'salarySlips', newSlip.id), sanitizeForFirestore(newSlip)).catch((err) =>
+      console.error('Firestore create salary slip error:', err)
+    );
+
     showToast('Slip gaji baru berhasil ditambahkan.', 'success', 'Slip Gaji Diterbitkan');
   };
 
-  const resetAllData = () => {
+  const resetAllData = async () => {
     localStorage.removeItem('guru_rj_teachers_v2');
     localStorage.removeItem('guru_rj_users_v2');
     localStorage.removeItem('guru_rj_attendance_v2');
@@ -1229,6 +1519,19 @@ export const AppProvider = ({ children }) => {
     setSalarySlips([]);
     setSchedules({});
     setCompletedSessions([]);
+
+    try {
+      const collectionsToClean = ['attendance', 'completedSessions', 'salarySlips'];
+      for (const colName of collectionsToClean) {
+        const snap = await getDocs(collection(db, colName));
+        for (const d of snap.docs) {
+          await deleteDoc(d.ref);
+        }
+      }
+    } catch (e) {
+      console.warn('Error clearing Firestore documents on reset:', e);
+    }
+
     showToast('Seluruh data demo telah dibersihkan untuk produksi.', 'info', 'Data Dibersihkan');
   };
 
