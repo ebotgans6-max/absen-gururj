@@ -139,14 +139,6 @@ export default function Login({ onNavigateToForgotPassword }) {
     }, 400);
   };
 
-  // Emergency local data reset handler
-  const handleEmergencyReset = () => {
-    if (window.confirm('PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data lokal di browser (guru, akun, absen, jadwal)? Halaman akan dimuat ulang ke kondisi awal.')) {
-      localStorage.clear();
-      window.location.reload();
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col justify-between bg-slate-50 min-h-full">
       {/* 1. Header & Identity */}
@@ -483,24 +475,13 @@ export default function Login({ onNavigateToForgotPassword }) {
       </div>
 
       {/* 3. Formal Portal Footer */}
-      <div className="text-center py-4 bg-slate-200/60 border-t border-slate-300/80 text-[11px] text-slate-500 space-y-1">
+      <div className="text-center py-4 bg-slate-200/60 border-t border-slate-300/80 text-[11px] text-slate-500 space-y-0.5">
         <p className="font-semibold text-slate-600">
           © 2026 Yayasan Pendidikan Guru RJ • Terintegrasi Dapodik & EMIS
         </p>
         <p className="text-[10px] text-slate-400">
           Pusat Data dan Informasi Pendidikan Terpadu • Seluruh Hak Cipta Dilindungi
         </p>
-
-        {/* Emergency Reset Button */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={handleEmergencyReset}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-[10px] font-black uppercase tracking-wider shadow-sm transition hover:scale-105 active:scale-95 cursor-pointer border border-rose-700"
-          >
-            🔴 RESET SEMUA DATA (DANGER)
-          </button>
-        </div>
       </div>
     </div>
   );
