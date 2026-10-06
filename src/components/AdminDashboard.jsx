@@ -411,14 +411,20 @@ export default function AdminDashboard() {
   // ==============================================================
   // 3. DETAIL GURU & MENGAJAR (TEACHING HISTORY LOG) COMPUTATIONS
   // ==============================================================
-  const currentDetailTeacher = selectedTeacherForDetail || (teachers && teachers.length > 0 ? teachers[0] : null);
+  const isAllTeachers = selectedTeacherForDetail === 'all';
+  const currentDetailTeacher = isAllTeachers
+    ? null
+    : (selectedTeacherForDetail || (teachers && teachers.length > 0 ? teachers[0] : null));
 
   const currentTeacherSessions = (completedSessions || []).filter((s) => {
-    if (!currentDetailTeacher || !s) return false;
+    if (!s) return false;
+    const matchPeriod = !s.period || !selectedMonth || s.period === selectedMonth;
+    if (!matchPeriod) return false;
+    if (isAllTeachers) return true;
+    if (!currentDetailTeacher) return false;
     const matchPhone = normalizePhone(s.teacherPhone) === normalizePhone(currentDetailTeacher?.phone);
     const matchName = s.teacherName && currentDetailTeacher?.name && s.teacherName.toLowerCase() === currentDetailTeacher.name.toLowerCase();
-    const matchPeriod = !s.period || !selectedMonth || s.period === selectedMonth;
-    return (matchPhone || matchName) && matchPeriod;
+    return matchPhone || matchName;
   });
 
   const detailRegularSessions = currentTeacherSessions.filter((s) => !s?.isBadal && s?.type !== 'badal');
@@ -1103,13 +1109,18 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-2">
                 {/* Select Teacher Dropdown */}
                 <select
-                  value={currentDetailTeacher?.phone || ''}
+                  value={isAllTeachers ? 'all' : (currentDetailTeacher?.phone || '')}
                   onChange={(e) => {
-                    const found = (teachers || []).find((t) => t?.phone === e.target.value);
-                    if (found) setSelectedTeacherForDetail(found);
+                    if (e.target.value === 'all') {
+                      setSelectedTeacherForDetail('all');
+                    } else {
+                      const found = (teachers || []).find((t) => t?.phone === e.target.value);
+                      if (found) setSelectedTeacherForDetail(found);
+                    }
                   }}
                   className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-brand-500 outline-none cursor-pointer max-w-[200px]"
                 >
+                  <option value="all">👥 Semua Guru</option>
                   {teachers && teachers.length > 0 ? (
                     teachers.map((t) => (
                       <option key={t?.phone || t?.name} value={t?.phone}>
@@ -1117,7 +1128,7 @@ export default function AdminDashboard() {
                       </option>
                     ))
                   ) : (
-                    <option value="">(Belum Ada Guru)</option>
+                    <option value="" disabled>(Belum Ada Guru)</option>
                   )}
                 </select>
 
@@ -1137,7 +1148,71 @@ export default function AdminDashboard() {
             </div>
 
             {/* Selected Teacher Profile Overview Card */}
-            {currentDetailTeacher && (
+            {isAllTeachers ? (
+              <div className="bg-white rounded-2xl p-4 shadow-soft-sm border border-slate-200 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-700 via-brand-600 to-emerald-600 text-white flex items-center justify-center font-black text-base shadow-sm">
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-base text-slate-800">
+                        Semua Guru (Rekap Log Kolektif)
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Menampilkan seluruh sesi mengajar GTK • Periode {selectedMonth}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+                          {(teachers || []).length} Guru Terdaftar
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold">
+                          Log Gabungan Seluruh GTK
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Activity Stats for the Month with Prominent Total Jam Mengajar Indicator */}
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center text-xs">
+                  <div className="p-2.5 bg-brand-50/90 border border-brand-200 rounded-xl">
+                    <span className="text-[10px] text-brand-700 font-bold uppercase tracking-wider block">
+                      Total Jam Mengajar
+                    </span>
+                    <span className="text-lg font-black text-brand-900 inline-flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3.5 h-3.5 text-brand-600" />
+                      {currentTeacherSessions.length} Jam
+                    </span>
+                    <span className="text-[10px] text-brand-600 font-semibold block">
+                      ({currentTeacherSessions.length} Sesi Terklaim)
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                      Total Honor Mengajar
+                    </span>
+                    <span className="text-base font-black text-slate-800 mt-1 block">
+                      {formatRupiah(detailSessionEarnings)}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium block">
+                      Reguler + Badal
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-teal-50/80 border border-teal-200/80 rounded-xl">
+                    <span className="text-[10px] text-teal-700 font-bold uppercase tracking-wider block">
+                      Total Transport
+                    </span>
+                    <span className="text-base font-black text-teal-800 mt-1 block">
+                      {formatRupiah(detailTransportData.totalTransport)}
+                    </span>
+                    <span className="text-[10px] text-teal-600 font-semibold block">
+                      {detailTransportData.activeDaysCount} hari aktif
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : currentDetailTeacher ? (
               <div className="bg-white rounded-2xl p-4 shadow-soft-sm border border-slate-200 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
@@ -1224,7 +1299,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Teacher Account Management Section (Requirement 41) */}
             <div className="bg-white rounded-2xl shadow-soft-sm border border-slate-200 overflow-hidden">
@@ -1295,7 +1370,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {!currentDetailTeacher && (
+            {!currentDetailTeacher && !isAllTeachers && (
               <div className="bg-white rounded-2xl p-8 text-center border border-slate-200 shadow-soft-sm">
                 <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                 <h4 className="font-bold text-slate-700 text-sm">Belum Ada Data Guru Terdaftar</h4>
@@ -1309,7 +1384,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800">
                   <BookOpen className="w-4 h-4 text-brand-600" />
                   <span>
-                    Log Sesi Mengajar Terklaim: <strong>{currentDetailTeacher?.name || 'Semua Guru'}</strong>
+                    Log Sesi Mengajar Terklaim: <strong>{isAllTeachers ? 'Semua Guru' : (currentDetailTeacher?.name || 'Semua Guru')}</strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1328,6 +1403,7 @@ export default function AdminDashboard() {
                   <thead>
                     <tr className="bg-slate-100/90 text-slate-700 font-extrabold uppercase text-[10px] border-b border-slate-200">
                       <th className="py-3 px-3.5">No</th>
+                      {isAllTeachers && <th className="py-3 px-3">Nama Guru</th>}
                       <th className="py-3 px-3">Tanggal (Date)</th>
                       <th className="py-3 px-3">Waktu (Time)</th>
                       <th className="py-3 px-3">Kelas (Class)</th>
@@ -1344,6 +1420,20 @@ export default function AdminDashboard() {
                           <td className="py-3 px-3.5 text-slate-400 font-mono text-[11px]">
                             {index + 1}
                           </td>
+
+                          {/* Nama Guru (jika opsi Semua Guru) */}
+                          {isAllTeachers && (
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              <span className="font-extrabold text-slate-900 text-xs block">
+                                {session.teacherName || 'Guru'}
+                              </span>
+                              {session.teacherPhone && (
+                                <span className="text-[10px] text-slate-400 font-mono block">
+                                  📱 {session.teacherPhone}
+                                </span>
+                              )}
+                            </td>
+                          )}
 
                           {/* 1. Tanggal (Date) */}
                           <td className="py-3 px-3 whitespace-nowrap">
@@ -1382,7 +1472,7 @@ export default function AdminDashboard() {
                             </span>
                             <span className="text-[10px] text-emerald-600 font-medium inline-flex items-center gap-1 mt-0.5">
                               <CheckCircle2 className="w-2.5 h-2.5" />
-                              Tuntas diajar
+                              {session.isBadal || session.type === 'badal' ? 'Guru Badal' : 'Tuntas diajar'}
                             </span>
                           </td>
 
@@ -1402,10 +1492,12 @@ export default function AdminDashboard() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="text-center py-10 text-xs text-slate-400">
+                        <td colSpan={isAllTeachers ? 8 : 7} className="text-center py-10 text-xs text-slate-400">
                           <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                           <span>
-                            {currentDetailTeacher
+                            {isAllTeachers
+                              ? `Belum ada sesi mengajar yang diceklis/diklaim oleh guru manapun untuk periode ${selectedMonth}.`
+                              : currentDetailTeacher
                               ? `Belum ada sesi mengajar yang diceklis/diklaim oleh ${currentDetailTeacher?.name || 'guru ini'} untuk periode ${selectedMonth}.`
                               : 'Belum ada data guru terdaftar.'}
                           </span>
