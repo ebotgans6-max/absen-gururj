@@ -320,6 +320,28 @@ export const AppProvider = ({ children }) => {
           const data = d.data();
           if (data && !DUMMY_TEACHER_PHONES.includes(normalizePhone(data.phone))) {
             list.push(data);
+            const norm = normalizePhone(data.phone);
+            // Ensure every registered user also has a teacher master record in Firestore
+            getDoc(doc(db, 'teachers', norm)).then((teacherDoc) => {
+              if (!teacherDoc.exists()) {
+                const autoTeacher = {
+                  id: `t-${norm}`,
+                  name: data.name,
+                  phone: norm,
+                  password: data.password || '123456',
+                  jabatan: data.jabatan || ['Guru Mapel'],
+                  email: `${(data.name || '').toLowerCase().replace(/[^a-z]/g, '')}@gururj.com`,
+                  nip: `19${Math.floor(1000000000000000 + Math.random() * 9000000000000000)}`,
+                  subject: Array.isArray(data.jabatan) ? data.jabatan.join(', ') : (data.jabatan || 'Guru Mapel'),
+                  joinedDate: getTodayDateString(),
+                  status: 'Tetap',
+                  role: data.role || 'teacher',
+                };
+                setDoc(doc(db, 'teachers', norm), sanitizeForFirestore(autoTeacher), { merge: true }).catch((err) =>
+                  console.warn('Auto-sync user to teachers note:', err)
+                );
+              }
+            }).catch(() => {});
           }
         });
         setRegisteredUsers(list);
@@ -944,23 +966,37 @@ export const AppProvider = ({ children }) => {
       console.error('Firestore register user error:', err)
     );
 
-    // If teacher, add to master teachers list and create initial schedule & salary slip
+    // Otomatis buat dokumen baru di koleksi 'teachers' (Data Master)
+    // Menggunakan data yang sama persis: name, phone, password, jabatan
+    const newTeacher = {
+      id: `t-${Date.now()}`,
+      name: fullName.trim(),
+      phone: normPhone,
+      password: password || '123456',
+      jabatan: selectedJabatan,
+      email: `${fullName.toLowerCase().replace(/[^a-z]/g, '')}@gururj.com`,
+      nip: `19${Math.floor(1000000000000000 + Math.random() * 9000000000000000)}`,
+      subject: selectedJabatan.join(', '),
+      joinedDate: getTodayDateString(),
+      status: 'Tetap',
+      role,
+      createdAt: newUser.createdAt,
+    };
+
+    setTeachers((prev) => {
+      const exists = prev.some((t) => normalizePhone(t.phone) === normPhone);
+      if (exists) {
+        return prev.map((t) => (normalizePhone(t.phone) === normPhone ? newTeacher : t));
+      }
+      return [...prev, newTeacher];
+    });
+
+    setDoc(doc(db, 'teachers', normPhone), sanitizeForFirestore(newTeacher)).catch((err) =>
+      console.error('Firestore register teacher error:', err)
+    );
+
+    // If teacher, create initial schedule & salary slip
     if (role === 'teacher') {
-      const newTeacher = {
-        id: `t-${Date.now()}`,
-        name: fullName.trim(),
-        phone: normPhone,
-        email: `${fullName.toLowerCase().replace(/[^a-z]/g, '')}@gururj.com`,
-        nip: `19${Math.floor(1000000000000000 + Math.random() * 9000000000000000)}`,
-        subject: selectedJabatan.join(', '),
-        jabatan: selectedJabatan,
-        joinedDate: getTodayDateString(),
-        status: 'Tetap',
-      };
-      setTeachers((prev) => [...prev, newTeacher]);
-      setDoc(doc(db, 'teachers', normPhone), sanitizeForFirestore(newTeacher)).catch((err) =>
-        console.error('Firestore register teacher error:', err)
-      );
 
       const defaultSchedules = [
         { id: `s-${Date.now()}-1`, day: 'Senin', time: '08:00 - 09:30', subject: 'Mata Pelajaran Terpadu', class: 'Kelas X-A', room: 'R. 101' },
