@@ -9,7 +9,6 @@ export const AVAILABLE_JABATAN = [
   'Wk Kesiswaan SMAT',
   'Wali Kelas',
   'Operator',
-  'Oprator',
 ];
 
 // Fixed monthly allowance for specific roles/jabatan
@@ -21,7 +20,6 @@ export const JABATAN_ALLOWANCES = {
   'Wk Kesiswaan SMAT': 300000,
   'Wali Kelas': 100000,
   'Walas': 100000,
-  'Oprator': 300000,
   'Operator': 300000,
   'Kepala Sekolah': 0,
   'Wakil Kepsek': 0,

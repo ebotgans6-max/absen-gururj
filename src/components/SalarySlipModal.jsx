@@ -542,7 +542,7 @@ export default function SalarySlipModal({
                           {item.role === 'WK Kesiswaan MTs' && 'Tunjangan Wakil Kesiswaan MTs'}
                           {item.role === 'Wk Kesiswaan SMAT' && 'Tunjangan Wakil Kesiswaan SMA Terpadu'}
                           {item.role === 'Wali Kelas' && 'Tunjangan Pengelolaan Wali Kelas'}
-                          {item.role === 'Oprator' && 'Tunjangan Pengelolaan Data & Sistem'}
+                          {item.role === 'Operator' && 'Tunjangan Pengelolaan Data & Sistem'}
                           {item.role === 'Kepala Sekolah' && 'Pimpinan Utama (Standar)'}
                           {item.role === 'Wakil Kepsek' && 'Manajerial (Standar)'}
                         </p>

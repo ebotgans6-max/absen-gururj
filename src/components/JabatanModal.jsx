@@ -186,7 +186,7 @@ export default function JabatanModal({ isOpen, onClose }) {
                         {item === 'WK Kesiswaan MTs' && 'Wakil kepala bidang kesiswaan MTs'}
                         {item === 'Wk Kesiswaan SMAT' && 'Wakil kepala bidang kesiswaan SMA Terpadu'}
                         {item === 'Wali Kelas' && 'Membina & mengelola rombongan belajar kelas'}
-                        {item === 'Oprator' && 'Operator data Dapodik, EMIS & sistem sekolah'}
+                        {item === 'Operator' && 'Operator data Dapodik, EMIS & sistem sekolah'}
                       </p>
                     </div>
                   </div>
