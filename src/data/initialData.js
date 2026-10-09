@@ -140,7 +140,7 @@ export const ADMIN_PHONE = '081111111111';
 export const INITIAL_SCHEDULES = {};
 
 // Re-export master schedules from scheduleData
-export { scheduleData, jadwalMts, jadwalSmat } from './scheduleData';
+export { scheduleData, jadwalMts, jadwalSmat, jadwalSma } from './scheduleData';
 
 // Initial Salary Slips (empty for production)
 export const INITIAL_SALARY_SLIPS = [];

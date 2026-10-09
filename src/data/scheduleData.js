@@ -273,9 +273,16 @@ export const scheduleData = {
   SMAT: {
     Senin: [
       {
-        waktu: "09.30 - 10.55",
+        waktu: "09.30 - 10.15",
         kelas10: "Geo - Bu Ayu",
         kelas11: "MTK - Bu Euis",
+        kodeGuru: { kelas10: "Ay", kelas11: "EH" },
+      },
+      {
+        waktu: "10.15 - 10.55",
+        kelas10: "Geo - Bu Ayu",
+        kelas11: "MTK - Bu Euis",
+        kodeGuru: { kelas10: "Ay", kelas11: "EH" },
       },
       {
         waktu: "10.55 - 11.10",
@@ -283,21 +290,49 @@ export const scheduleData = {
         label: "ISTIRAHAT",
       },
       {
-        waktu: "11.10 - 12.25",
+        waktu: "11.10 - 11.45",
         kelas10: "MTK - Bu Euis",
         kelas11: "S. Indo - Bu Siti Khuzaimah",
+        kodeGuru: { kelas10: "EH", kelas11: "SK" },
       },
       {
-        waktu: "12.25 - 13.45",
+        waktu: "11.45 - 12.25",
+        kelas10: "MTK - Bu Euis",
+        kelas11: "S. Indo - Bu Siti Khuzaimah",
+        kodeGuru: { kelas10: "EH", kelas11: "SK" },
+      },
+      {
+        waktu: "12.25 - 13.05",
         kelas10: "Fisika - Pak Fatih",
         kelas11: "PKN - Bu Ayu",
+        kodeGuru: { kelas10: "MF", kelas11: "Ay" },
+      },
+      {
+        waktu: "13.05 - 13.45",
+        kelas10: "Fisika - Pak Fatih",
+        kelas11: "PKN - Bu Ayu",
+        kodeGuru: { kelas10: "MF", kelas11: "Ay" },
+      },
+      {
+        waktu: "14.00 - 15.20",
+        kelas10: "Japanese Club (Ekskul) - Sensei Naka",
+        kelas11: "Japanese Club (Ekskul) - Sensei Naka",
+        kodeGuru: { kelas10: "NS", kelas11: "NS" },
+        note: "Ekstrakurikuler",
       },
     ],
     Selasa: [
       {
-        waktu: "09.30 - 10.55",
+        waktu: "09.30 - 10.15",
         kelas10: "Eko - Sensei Naka",
         kelas11: "Sosio - Bu Ayu",
+        kodeGuru: { kelas10: "NS", kelas11: "Ay" },
+      },
+      {
+        waktu: "10.15 - 10.55",
+        kelas10: "Eko - Sensei Naka",
+        kelas11: "Sosio - Bu Ayu",
+        kodeGuru: { kelas10: "NS", kelas11: "Ay" },
       },
       {
         waktu: "10.55 - 11.10",
@@ -305,21 +340,42 @@ export const scheduleData = {
         label: "ISTIRAHAT",
       },
       {
-        waktu: "11.10 - 12.25",
+        waktu: "11.10 - 11.45",
         kelas10: "B. Jepang - Sensei Naka",
         kelas11: "Eko - Sensei Naka",
+        kodeGuru: { kelas10: "NS", kelas11: "NS" },
       },
       {
-        waktu: "12.25 - 13.45",
+        waktu: "11.45 - 12.25",
+        kelas10: "B. Jepang - Sensei Naka",
+        kelas11: "Eko - Sensei Naka",
+        kodeGuru: { kelas10: "NS", kelas11: "NS" },
+      },
+      {
+        waktu: "12.25 - 13.05",
         kelas10: "S. Indo - Bu Siti Khuzaimah",
         kelas11: "B. Jepang - Sensei Naka",
+        kodeGuru: { kelas10: "SK", kelas11: "NS" },
+      },
+      {
+        waktu: "13.05 - 13.45",
+        kelas10: "S. Indo - Bu Siti Khuzaimah",
+        kelas11: "B. Jepang - Sensei Naka",
+        kodeGuru: { kelas10: "SK", kelas11: "NS" },
       },
     ],
     Rabu: [
       {
-        waktu: "09.30 - 10.55",
+        waktu: "09.30 - 10.15",
         kelas10: "Penjas - Pak Febri",
         kelas11: "Sejarah - Bu Siti Khuzaimah",
+        kodeGuru: { kelas10: "F", kelas11: "SK" },
+      },
+      {
+        waktu: "10.15 - 10.55",
+        kelas10: "Penjas - Pak Febri",
+        kelas11: "Sejarah - Bu Siti Khuzaimah",
+        kodeGuru: { kelas10: "F", kelas11: "SK" },
       },
       {
         waktu: "10.55 - 11.10",
@@ -327,21 +383,42 @@ export const scheduleData = {
         label: "ISTIRAHAT",
       },
       {
-        waktu: "11.10 - 12.25",
+        waktu: "11.10 - 11.45",
         kelas10: "B. Indo - Bu Ari",
         kelas11: "Geo - Bu Ayu",
+        kodeGuru: { kelas10: "AR", kelas11: "AY" },
       },
       {
-        waktu: "12.25 - 13.45",
-        kelas10: "TIK - Pak Febri",
+        waktu: "11.45 - 12.25",
+        kelas10: "B. Indo - Bu Ari",
+        kelas11: "Geo - Bu Ayu",
+        kodeGuru: { kelas10: "AR", kelas11: "AY" },
+      },
+      {
+        waktu: "12.25 - 13.05",
+        kelas10: "Sejarah - Bu Siti Khuzaimah",
         kelas11: "B. Indo - Bu Ari",
+        kodeGuru: { kelas10: "SK", kelas11: "AR" },
+      },
+      {
+        waktu: "13.05 - 13.45",
+        kelas10: "Sejarah - Bu Siti Khuzaimah",
+        kelas11: "B. Indo - Bu Ari",
+        kodeGuru: { kelas10: "SK", kelas11: "AR" },
       },
     ],
     Kamis: [
       {
-        waktu: "09.30 - 10.55",
+        waktu: "09.30 - 10.15",
         kelas10: "B. Indo - Bu Ari",
         kelas11: "Penjas - Pak Febri",
+        kodeGuru: { kelas10: "AR", kelas11: "F" },
+      },
+      {
+        waktu: "10.15 - 10.55",
+        kelas10: "B. Indo - Bu Ari",
+        kelas11: "Penjas - Pak Febri",
+        kodeGuru: { kelas10: "AR", kelas11: "F" },
       },
       {
         waktu: "10.55 - 11.10",
@@ -349,42 +426,71 @@ export const scheduleData = {
         label: "ISTIRAHAT",
       },
       {
-        waktu: "11.10 - 12.25",
+        waktu: "11.10 - 11.45",
         kelas10: "Sosio - Bu Ayu",
-        kelas11: "Sejarah - Bu Siti Khuzaimah",
+        kelas11: "B. Indo - Bu Ari",
+        kodeGuru: { kelas10: "Ay", kelas11: "AR" },
       },
       {
-        waktu: "12.25 - 13.45",
-        kelas10: "PKN - Bu Ayu",
+        waktu: "11.45 - 12.25",
+        kelas10: "Sosio - Bu Ayu",
+        kelas11: "B. Indo - Bu Ari",
+        kodeGuru: { kelas10: "Ay", kelas11: "AR" },
+      },
+      {
+        waktu: "12.25 - 13.05",
+        kelas10: "TIK - Pak Febri",
         kelas11: "PAI - Bu Siti Khuzaimah",
+        kodeGuru: { kelas10: "F", kelas11: "SK" },
+      },
+      {
+        waktu: "13.05 - 13.45",
+        kelas10: "TIK - Pak Febri",
+        kelas11: "PAI - Bu Siti Khuzaimah",
+        kodeGuru: { kelas10: "F", kelas11: "SK" },
       },
     ],
     Jumat: [
       {
-        waktu: "07.00 - 08.25",
+        waktu: "07.00 - 07.45",
         kelas10: "PAI - Bu Siti Khuzaimah",
         kelas11: "B. Inggris - Miss Harti",
+        kodeGuru: { kelas10: "SK", kelas11: "H" },
+      },
+      {
+        waktu: "07.45 - 08.25",
+        kelas10: "PAI - Bu Siti Khuzaimah",
+        kelas11: "B. Inggris - Miss Harti",
+        kodeGuru: { kelas10: "SK", kelas11: "H" },
       },
       {
         waktu: "08.25 - 09.05",
         kelas10: "PKN - Bu Ayu",
         kelas11: "TIK - Pak Febri",
+        kodeGuru: { kelas10: "Ay", kelas11: "F" },
       },
       {
         waktu: "09.05 - 09.35",
         isBreak: true,
-        label: "ISTIRAHAT MBG",
+        label: "MBG (Makan Bergizi Gratis / Istirahat)",
       },
       {
         waktu: "09.35 - 10.15",
         kelas10: "PKN - Bu Ayu",
         kelas11: "TIK - Pak Febri",
-        note: "Lanjutan setelah istirahat MBG",
+        kodeGuru: { kelas10: "Ay", kelas11: "F" },
       },
       {
-        waktu: "10.15 - 11.35",
+        waktu: "10.15 - 10.55",
         kelas10: "B. Inggris - Miss Harti",
         kelas11: "Prakarya - Bu Siti Khuzaimah",
+        kodeGuru: { kelas10: "H", kelas11: "SK" },
+      },
+      {
+        waktu: "10.55 - 11.35",
+        kelas10: "B. Inggris - Miss Harti",
+        kelas11: "Prakarya - Bu Siti Khuzaimah",
+        kodeGuru: { kelas10: "H", kelas11: "SK" },
       },
     ],
     Sabtu: [
@@ -392,11 +498,13 @@ export const scheduleData = {
         waktu: "08.00 - 09.30",
         kelas10: "Pramuka",
         kelas11: "Pramuka",
+        kodeGuru: { kelas10: "-", kelas11: "-" },
       },
       {
         waktu: "09.30 - 11.00",
         kelas10: "Mandarin",
         kelas11: "Mandarin",
+        kodeGuru: { kelas10: "-", kelas11: "-" },
       },
     ],
   },
@@ -405,6 +513,7 @@ export const scheduleData = {
 // Export individual level schedules for direct consumption
 export const jadwalMts = scheduleData.MTS;
 export const jadwalSmat = scheduleData.SMAT;
+export const jadwalSma = scheduleData.SMAT;
 
 export const SCHEDULE_TEACHERS = [
   'Sensei Naka',
@@ -439,6 +548,7 @@ export const TEACHER_CODE_MAP = {
   is: ['pak iin', 'iin', 'solihin', 'iin solihin'],
   nh: ['bu ana', 'ana', 'nurul huda', 'nurul'],
   sk: ['bu siti khuzaimah', 'siti khuzaimah', 'khuzaimah'],
+  h: ['miss harti', 'harti'],
   mh: ['miss harti', 'harti'],
 };
 
