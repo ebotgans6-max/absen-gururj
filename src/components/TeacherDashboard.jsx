@@ -111,14 +111,6 @@ export default function TeacherDashboard() {
     year: 'numeric',
   });
 
-  const handleWithdrawClick = () => {
-    showToast(
-      'Penarikan Honor: Honor dan insentif mengajar ditransfer otomatis ke rekening setiap akhir bulan.',
-      'info',
-      'Penarikan Honor 💳'
-    );
-  };
-
   const handleSalaryHistoryClick = () => {
     setIsSalaryOpen(true);
     showToast('Membuka riwayat slip dan rekapitulasi gaji bulanan Anda.', 'info', 'Riwayat Gaji 📄');
@@ -218,7 +210,6 @@ export default function TeacherDashboard() {
         <SalaryCard
           amount="Rp 3.500.000"
           label="Honor Mengajar Bulan Ini"
-          onWithdraw={handleWithdrawClick}
           onSalarySlip={() => setIsSalaryOpen(true)}
           onHistory={handleSalaryHistoryClick}
         />

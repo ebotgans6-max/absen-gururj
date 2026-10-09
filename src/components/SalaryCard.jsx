@@ -1,10 +1,9 @@
 import React from 'react';
-import { Wallet, ArrowUp, FileText, Receipt } from 'lucide-react';
+import { Wallet, FileText, Receipt } from 'lucide-react';
 
 export default function SalaryCard({
   amount = 'Rp 3.500.000',
   label = 'Honor Mengajar Bulan Ini',
-  onWithdraw,
   onSalarySlip,
   onHistory,
 }) {
@@ -28,24 +27,9 @@ export default function SalaryCard({
         </div>
       </div>
 
-      {/* Bagian Kanan (Menu Aksi ala Gojek) */}
-      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-        {/* Menu 1: Tarik */}
-        <button
-          type="button"
-          onClick={onWithdraw}
-          className="flex flex-col items-center group cursor-pointer focus:outline-none active:scale-95 transition-transform"
-          title="Tarik Honor"
-        >
-          <div className="w-7 h-7 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <ArrowUp className="w-4 h-4 text-[#0081A0]" />
-          </div>
-          <span className="text-[10px] font-medium text-gray-700 mt-0.5">
-            Tarik
-          </span>
-        </button>
-
-        {/* Menu 2: Slip */}
+      {/* Bagian Kanan (Menu Aksi ala Gojek: Slip & Riwayat Gaji) */}
+      <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
+        {/* Menu 1: Slip */}
         <button
           type="button"
           onClick={onSalarySlip}
@@ -60,7 +44,7 @@ export default function SalaryCard({
           </span>
         </button>
 
-        {/* Menu 3: Riwayat Gaji */}
+        {/* Menu 2: Riwayat Gaji */}
         <button
           type="button"
           onClick={onHistory}
