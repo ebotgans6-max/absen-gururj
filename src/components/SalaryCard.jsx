@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet, ArrowUp, FileText, History } from 'lucide-react';
+import { Wallet, ArrowUp, FileText, Receipt } from 'lucide-react';
 
 export default function SalaryCard({
   amount = 'Rp 3.500.000',
@@ -60,18 +60,18 @@ export default function SalaryCard({
           </span>
         </button>
 
-        {/* Menu 3: Riwayat */}
+        {/* Menu 3: Riwayat Gaji */}
         <button
           type="button"
           onClick={onHistory}
           className="flex flex-col items-center group cursor-pointer focus:outline-none active:scale-95 transition-transform"
-          title="Riwayat Presensi & Honor"
+          title="Riwayat Gaji & Transaksi Bulanan"
         >
           <div className="w-7 h-7 flex items-center justify-center group-hover:scale-110 transition-transform">
-            <History className="w-4 h-4 text-[#0081A0]" />
+            <Receipt className="w-4 h-4 text-[#0081A0]" />
           </div>
-          <span className="text-[10px] font-medium text-gray-700 mt-0.5">
-            Riwayat
+          <span className="text-[10px] font-medium text-gray-700 mt-0.5 whitespace-nowrap">
+            Riwayat Gaji
           </span>
         </button>
       </div>

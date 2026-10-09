@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Clock,
   Calendar,
@@ -16,7 +16,6 @@ import ProfileModal from './ProfileModal';
 import BadalModal from './BadalModal';
 import MenuLainnyaModal from './MenuLainnyaModal';
 import SalaryCard from './SalaryCard';
-import TodayAttendanceCard from './TodayAttendanceCard';
 import TeacherGridMenu from './TeacherGridMenu';
 import RecentAttendanceCard from './RecentAttendanceCard';
 import { normalizePhone, getScheduleHoursForDate } from '../data/initialData';
@@ -112,8 +111,6 @@ export default function TeacherDashboard() {
     year: 'numeric',
   });
 
-  const historyRef = useRef(null);
-
   const handleWithdrawClick = () => {
     showToast(
       'Penarikan Honor: Honor dan insentif mengajar ditransfer otomatis ke rekening setiap akhir bulan.',
@@ -122,11 +119,9 @@ export default function TeacherDashboard() {
     );
   };
 
-  const handleHistoryClick = () => {
-    if (historyRef.current) {
-      historyRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-    showToast('Menampilkan riwayat presensi terbaru Anda.', 'info', 'Riwayat Presensi');
+  const handleSalaryHistoryClick = () => {
+    setIsSalaryOpen(true);
+    showToast('Membuka riwayat slip dan rekapitulasi gaji bulanan Anda.', 'info', 'Riwayat Gaji 📄');
   };
 
   return (
@@ -219,25 +214,17 @@ export default function TeacherDashboard() {
 
       {/* Main Content Area */}
       <div className="p-4 sm:p-5 max-w-lg mx-auto w-full">
-        {/* Card Saldo/Gaji ala GoPay (di atas card Status Presensi Hari Ini) */}
+        {/* Card Saldo/Gaji ala GoPay di paling atas */}
         <SalaryCard
           amount="Rp 3.500.000"
           label="Honor Mengajar Bulan Ini"
           onWithdraw={handleWithdrawClick}
           onSalarySlip={() => setIsSalaryOpen(true)}
-          onHistory={handleHistoryClick}
+          onHistory={handleSalaryHistoryClick}
         />
 
         <div className="space-y-6">
-          {/* 1. Card "Status Presensi Hari Ini" */}
-          <TodayAttendanceCard
-            todayRecord={todayRecord}
-            scheduleText="Patokan: Senin - Kamis (Masuk 09.30 WIB • Pulang 13.45 WIB)"
-            onClockInClick={() => setIsAttendanceModalOpen(true)}
-            onClockOutClick={handleClockOutClick}
-          />
-
-          {/* 2. Bagian "Menu Layanan Guru" (Grid Icon 4 Kolom 7 Item) */}
+          {/* 1. Bagian "Menu Layanan Guru" (Grid Icon 4 Kolom 7 Item) */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-100">
             <TeacherGridMenu
               onClockIn={() => setIsAttendanceModalOpen(true)}
@@ -251,12 +238,10 @@ export default function TeacherDashboard() {
             />
           </div>
 
-          {/* 3. Card "Riwayat Presensi Terakhir" */}
-          <div ref={historyRef} className="scroll-mt-24">
-            <RecentAttendanceCard
-              attendanceHistory={teacherAttendanceHistory}
-            />
-          </div>
+          {/* 2. Card "Riwayat Presensi Terakhir" */}
+          <RecentAttendanceCard
+            attendanceHistory={teacherAttendanceHistory}
+          />
         </div>
       </div>
 
