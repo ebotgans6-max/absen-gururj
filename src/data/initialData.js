@@ -140,7 +140,114 @@ export const ADMIN_PHONE = '081111111111';
 export const INITIAL_SCHEDULES = {};
 
 // Re-export master schedules from scheduleData
-export { scheduleData, jadwalMts, jadwalSmat, jadwalSma } from './scheduleData';
+export { scheduleData, jadwalSmat, jadwalSma } from './scheduleData';
+
+export const jadwalMts = [
+  // SENIN
+  {hari: "Senin", jam: "09.30 - 10.10", kelas: "VII MTs", guru: "NS", mapel: "B JEPANG"},
+  {hari: "Senin", jam: "09.30 - 10.10", kelas: "VIII MTs", guru: "MF", mapel: "IPA"},
+  {hari: "Senin", jam: "09.30 - 10.10", kelas: "IX MTs", guru: "F", mapel: "PRAKARYA"},
+  {hari: "Senin", jam: "10.10 - 10.50", kelas: "VII MTs", guru: "NS", mapel: "B JEPANG"},
+  {hari: "Senin", jam: "10.10 - 10.50", kelas: "VIII MTs", guru: "MF", mapel: "IPA"},
+  {hari: "Senin", jam: "10.10 - 10.50", kelas: "IX MTs", guru: "F", mapel: "PRAKARYA"},
+  {hari: "Senin", jam: "11.05 - 11.40", kelas: "VII MTs", guru: "DH", mapel: "PKN"},
+  {hari: "Senin", jam: "11.05 - 11.40", kelas: "VIII MTs", guru: "NS", mapel: "B JEPANG"},
+  {hari: "Senin", jam: "11.05 - 11.40", kelas: "IX MTs", guru: "SH", mapel: "IPS"},
+  {hari: "Senin", jam: "11.40 - 12.20", kelas: "VII MTs", guru: "DH", mapel: "PKN"},
+  {hari: "Senin", jam: "11.40 - 12.20", kelas: "VIII MTs", guru: "NS", mapel: "B JEPANG"},
+  {hari: "Senin", jam: "11.40 - 12.20", kelas: "IX MTs", guru: "SH", mapel: "IPS"},
+  {hari: "Senin", jam: "12.20 - 13.00", kelas: "VII MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Senin", jam: "12.20 - 13.00", kelas: "VIII MTs", guru: "An", mapel: "QURDIS"},
+  {hari: "Senin", jam: "12.20 - 13.00", kelas: "IX MTs", guru: "NS", mapel: "B JEPANG"},
+  {hari: "Senin", jam: "13.00 - 13.40", kelas: "VII MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Senin", jam: "13.00 - 13.40", kelas: "VIII MTs", guru: "An", mapel: "QURDIS"},
+  {hari: "Senin", jam: "13.00 - 13.40", kelas: "IX MTs", guru: "NS", mapel: "B JEPANG"},
+  {hari: "Senin", jam: "14.00 - 15.20", kelas: "Semua Kelas", kegiatan: "Japanese Club"},
+
+  // SELASA
+  {hari: "Selasa", jam: "09.30 - 10.10", kelas: "VII MTs", guru: "SH", mapel: "PJOK"},
+  {hari: "Selasa", jam: "09.30 - 10.10", kelas: "VIII MTs", guru: "NA", mapel: "FIQIH"},
+  {hari: "Selasa", jam: "09.30 - 10.10", kelas: "IX MTs", guru: "F", mapel: "TIK"},
+  {hari: "Selasa", jam: "10.10 - 10.50", kelas: "VII MTs", guru: "SH", mapel: "PJOK"},
+  {hari: "Selasa", jam: "10.10 - 10.50", kelas: "VIII MTs", guru: "NA", mapel: "FIQIH"},
+  {hari: "Selasa", jam: "10.10 - 10.50", kelas: "IX MTs", guru: "F", mapel: "TIK"},
+  {hari: "Selasa", jam: "11.05 - 11.40", kelas: "VII MTs", guru: "AN", mapel: "QURDIS"},
+  {hari: "Selasa", jam: "11.05 - 11.40", kelas: "VIII MTs", guru: "DH", mapel: "PKN"},
+  {hari: "Selasa", jam: "11.05 - 11.40", kelas: "IX MTs", guru: "SH", mapel: "PJOK"},
+  {hari: "Selasa", jam: "11.40 - 12.20", kelas: "VII MTs", guru: "AN", mapel: "QURDIS"},
+  {hari: "Selasa", jam: "11.40 - 12.20", kelas: "VIII MTs", guru: "DH", mapel: "PKN"},
+  {hari: "Selasa", jam: "11.40 - 12.20", kelas: "IX MTs", guru: "SH", mapel: "PJOK"},
+  {hari: "Selasa", jam: "12.20 - 13.00", kelas: "VII MTs", guru: "SH", mapel: "IPS"},
+  {hari: "Selasa", jam: "12.20 - 13.00", kelas: "VIII MTs", guru: "F", mapel: "TIK"},
+  {hari: "Selasa", jam: "12.20 - 13.00", kelas: "IX MTs", guru: "MF", mapel: "IPA"},
+  {hari: "Selasa", jam: "13.00 - 13.40", kelas: "VII MTs", guru: "SH", mapel: "IPS"},
+  {hari: "Selasa", jam: "13.00 - 13.40", kelas: "VIII MTs", guru: "F", mapel: "TIK"},
+  {hari: "Selasa", jam: "13.00 - 13.40", kelas: "IX MTs", guru: "MF", mapel: "IPA"},
+
+  // RABU
+  {hari: "Rabu", jam: "09.30 - 10.10", kelas: "VII MTs", guru: "Ay", mapel: "B INGG"},
+  {hari: "Rabu", jam: "09.30 - 10.10", kelas: "VIII MTs", guru: "SH", mapel: "PJOK"},
+  {hari: "Rabu", jam: "09.30 - 10.10", kelas: "IX MTs", guru: "AR", mapel: "B INDO"},
+  {hari: "Rabu", jam: "10.10 - 10.50", kelas: "VII MTs", guru: "Ay", mapel: "B INGG"},
+  {hari: "Rabu", jam: "10.10 - 10.50", kelas: "VIII MTs", guru: "SH", mapel: "PJOK"},
+  {hari: "Rabu", jam: "10.10 - 10.50", kelas: "IX MTs", guru: "AR", mapel: "B INDO"},
+  {hari: "Rabu", jam: "11.05 - 11.40", kelas: "VII MTs", guru: "NA", mapel: "FIQIH"},
+  {hari: "Rabu", jam: "11.05 - 11.40", kelas: "VIII MTs", guru: "F", mapel: "PRAKARYA"},
+  {hari: "Rabu", jam: "11.05 - 11.40", kelas: "IX MTs", guru: "DH", mapel: "PKN"},
+  {hari: "Rabu", jam: "11.40 - 12.20", kelas: "VII MTs", guru: "NA", mapel: "FIQIH"},
+  {hari: "Rabu", jam: "11.40 - 12.20", kelas: "VIII MTs", guru: "F", mapel: "PRAKARYA"},
+  {hari: "Rabu", jam: "11.40 - 12.20", kelas: "IX MTs", guru: "DH", mapel: "PKN"},
+  {hari: "Rabu", jam: "12.20 - 13.00", kelas: "VII MTs", guru: "MF", mapel: "IPA"},
+  {hari: "Rabu", jam: "12.20 - 13.00", kelas: "VIII MTs", guru: "SH", mapel: "IPS"},
+  {hari: "Rabu", jam: "12.20 - 13.00", kelas: "IX MTs", guru: "NA", mapel: "FIQIH"},
+  {hari: "Rabu", jam: "13.00 - 13.40", kelas: "VII MTs", guru: "MF", mapel: "IPA"},
+  {hari: "Rabu", jam: "13.00 - 13.40", kelas: "VIII MTs", guru: "SH", mapel: "IPS"},
+  {hari: "Rabu", jam: "13.00 - 13.40", kelas: "IX MTs", guru: "NA", mapel: "FIQIH"},
+
+  // KAMIS
+  {hari: "Kamis", jam: "09.30 - 10.10", kelas: "VII MTs", guru: "IS", mapel: "AQIDAH"},
+  {hari: "Kamis", jam: "09.30 - 10.10", kelas: "VIII MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Kamis", jam: "09.30 - 10.10", kelas: "IX MTs", guru: "Ay", mapel: "B INGG"},
+  {hari: "Kamis", jam: "10.10 - 10.50", kelas: "VII MTs", guru: "IS", mapel: "AQIDAH"},
+  {hari: "Kamis", jam: "10.10 - 10.50", kelas: "VIII MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Kamis", jam: "10.10 - 10.50", kelas: "IX MTs", guru: "Ay", mapel: "B INGG"},
+  {hari: "Kamis", jam: "11.05 - 11.40", kelas: "VII MTs", guru: "F", mapel: "PRAKARYA"},
+  {hari: "Kamis", jam: "11.05 - 11.40", kelas: "VIII MTs", guru: "IS", mapel: "AQIDAH"},
+  {hari: "Kamis", jam: "11.05 - 11.40", kelas: "IX MTs", guru: "An", mapel: "QURDIS"},
+  {hari: "Kamis", jam: "11.40 - 12.20", kelas: "VII MTs", guru: "F", mapel: "PRAKARYA"},
+  {hari: "Kamis", jam: "11.40 - 12.20", kelas: "VIII MTs", guru: "IS", mapel: "AQIDAH"},
+  {hari: "Kamis", jam: "11.40 - 12.20", kelas: "IX MTs", guru: "An", mapel: "QURDIS"},
+  {hari: "Kamis", jam: "12.20 - 13.00", kelas: "VII MTs", guru: "F", mapel: "TIK"},
+  {hari: "Kamis", jam: "12.20 - 13.00", kelas: "VIII MTs", guru: "AY", mapel: "B INGG"},
+  {hari: "Kamis", jam: "12.20 - 13.00", kelas: "IX MTs", guru: "AR", mapel: "B INDO"},
+  {hari: "Kamis", jam: "13.00 - 13.40", kelas: "VII MTs", guru: "F", mapel: "TIK"},
+  {hari: "Kamis", jam: "13.00 - 13.40", kelas: "VIII MTs", guru: "AY", mapel: "B INGG"},
+  {hari: "Kamis", jam: "13.00 - 13.40", kelas: "IX MTs", guru: "AR", mapel: "B INDO"},
+
+  // JUM'AT
+  {hari: "Jumat", jam: "07.00 - 07.40", kelas: "VII MTs", guru: "NH", mapel: "B ARAB"},
+  {hari: "Jumat", jam: "07.00 - 07.40", kelas: "VIII MTs", guru: "AR", mapel: "B INDO"},
+  {hari: "Jumat", jam: "07.00 - 07.40", kelas: "IX MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Jumat", jam: "07.40 - 08.20", kelas: "VII MTs", guru: "NH", mapel: "B ARAB"},
+  {hari: "Jumat", jam: "07.40 - 08.20", kelas: "VIII MTs", guru: "AR", mapel: "B INDO"},
+  {hari: "Jumat", jam: "07.40 - 08.20", kelas: "IX MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Jumat", jam: "08.20 - 09.00", kelas: "VII MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Jumat", jam: "08.20 - 09.00", kelas: "VIII MTs", guru: "NH", mapel: "B ARAB"},
+  {hari: "Jumat", jam: "08.20 - 09.00", kelas: "IX MTs", guru: "IS", mapel: "AQIDAH"},
+  {hari: "Jumat", jam: "09.30 - 10.10", kelas: "VII MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Jumat", jam: "09.30 - 10.10", kelas: "VIII MTs", guru: "NH", mapel: "B ARAB"},
+  {hari: "Jumat", jam: "09.30 - 10.10", kelas: "IX MTs", guru: "IS", mapel: "AQIDAH"},
+  {hari: "Jumat", jam: "10.10 - 10.50", kelas: "VII MTs", guru: "AR", mapel: "B.INDO"},
+  {hari: "Jumat", jam: "10.10 - 10.50", kelas: "VIII MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Jumat", jam: "10.10 - 10.50", kelas: "IX MTs", guru: "NH", mapel: "B ARAB"},
+  {hari: "Jumat", jam: "10.50 - 11.30", kelas: "VII MTs", guru: "AR", mapel: "B.INDO"},
+  {hari: "Jumat", jam: "10.50 - 11.30", kelas: "VIII MTs", guru: "EH", mapel: "MTK"},
+  {hari: "Jumat", jam: "10.50 - 11.30", kelas: "IX MTs", guru: "NH", mapel: "B ARAB"},
+
+  // SABTU
+  {hari: "Sabtu", jam: "08.00 - 09.30", kelas: "Semua Kelas", kegiatan: "MANDARIN"},
+  {hari: "Sabtu", jam: "09.30 - 11.00", kelas: "Semua Kelas", kegiatan: "PRAMUKA"}
+];
 
 // Initial Salary Slips (empty for production)
 export const INITIAL_SALARY_SLIPS = [];
