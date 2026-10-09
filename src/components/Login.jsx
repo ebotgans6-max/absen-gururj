@@ -139,20 +139,22 @@ export default function Login({ onNavigateToForgotPassword, onNavigateToRegister
 
   return (
     <div className="flex-1 flex flex-col justify-between bg-slate-50 min-h-full">
-      {/* 1. Header / Logo Area (Clean, Minimalist, Ample Whitespace) */}
+      {/* 1. Header / Logo Area (Clean, Modern, Whitespace Lega) */}
       <div className="pt-8 sm:pt-12 pb-4 px-6 text-center">
         {/* Ikon Topi Toga (Logo) di tengah di dalam lingkaran hijau pastel */}
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4 text-green-600 shadow-xs">
           <GraduationCap className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
         </div>
 
-        {/* Teks Judul 2 Baris */}
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight">
-          Sistem Informasi Guru
+        {/* Judul Utama dengan Gradasi Kekinian */}
+        <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight bg-gradient-to-r from-green-600 to-teal-500 bg-clip-text text-transparent">
+          Portal Guru RJ
         </h1>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight mt-0.5">
+
+        {/* Sub-judul Elegan */}
+        <p className="text-sm sm:text-base font-medium text-gray-500 tracking-wide mt-1.5">
           MTs Riyadlul Jannah
-        </h2>
+        </p>
       </div>
 
       {/* 2. Form Login Card Container */}
