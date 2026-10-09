@@ -153,7 +153,7 @@ export default function Login({ onNavigateToForgotPassword, onNavigateToRegister
 
         {/* Sub-judul Elegan */}
         <p className="text-sm sm:text-base font-medium text-gray-500 tracking-wide mt-1.5">
-          MTs Riyadlul Jannah
+          MTs & SMA Terpadu Riyadlul Jannah
         </p>
       </div>
 
@@ -469,7 +469,7 @@ export default function Login({ onNavigateToForgotPassword, onNavigateToRegister
 
       {/* 3. Formal Minimalist Footer */}
       <div className="text-center py-4 text-xs text-slate-400 font-medium">
-        © 2026 MTs Riyadlul Jannah • Sistem Presensi & Kepegawaian
+        © 2026 MTs & SMA Terpadu Riyadlul Jannah • Sistem Presensi & Kepegawaian
       </div>
     </div>
   );
