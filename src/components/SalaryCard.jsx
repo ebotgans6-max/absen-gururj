@@ -9,27 +9,27 @@ export default function SalaryCard({
   onHistory,
 }) {
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-4 sm:p-5 mb-6 flex justify-between items-center transition-all">
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-3.5 sm:p-4 mb-6 flex justify-between items-center transition-all">
       {/* Bagian Kiri (Info Saldo) */}
-      <div className="flex items-center gap-3 min-w-0 pr-2">
+      <div className="flex items-center gap-2.5">
         {/* Ikon Dompet di dalam lingkaran biru muda */}
-        <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
           <Wallet className="w-5 h-5 text-blue-600" />
         </div>
 
         {/* Nominal Gaji & Subteks */}
-        <div className="min-w-0">
-          <p className="text-lg sm:text-xl font-bold text-slate-800 tracking-tight leading-snug truncate">
+        <div>
+          <p className="text-[15px] sm:text-base font-bold text-slate-800 tracking-tight leading-snug whitespace-nowrap">
             {amount}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5 truncate">
+          <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 whitespace-nowrap">
             {label}
           </p>
         </div>
       </div>
 
       {/* Bagian Kanan (Menu Aksi ala Gojek) */}
-      <div className="flex items-center gap-4 flex-shrink-0">
+      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
         {/* Menu 1: Tarik */}
         <button
           type="button"
