@@ -6,7 +6,6 @@ import {
   UserPlus,
   AlertCircle,
   AlertOctagon,
-  CheckCircle2,
   Loader2,
   Lock,
   User,
@@ -23,7 +22,7 @@ import {
   isKepalaSekolah,
 } from '../data/initialData';
 
-export default function Login({ onNavigateToForgotPassword }) {
+export default function Login({ onNavigateToForgotPassword, onNavigateToRegister }) {
   const { login, register, showToast } = useApp();
 
   // View state: 'login' | 'register'
@@ -36,7 +35,7 @@ export default function Login({ onNavigateToForgotPassword }) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorAlert, setErrorAlert] = useState('');
 
-  // Register Form States (Nama Lengkap, Nomor HP, Kata Sandi, Pilih Jabatan)
+  // Register Form States
   const [regFullName, setRegFullName] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -69,14 +68,14 @@ export default function Login({ onNavigateToForgotPassword }) {
     }
   };
 
-  // Requirement 20: Unified Login Handler & Automatic Backend Routing
+  // Unified Login Handler
   const handleLoginSubmit = (e) => {
     e.preventDefault();
     setErrorAlert('');
 
     const norm = normalizePhone(phone);
     if (!norm || norm.length < 9) {
-      setErrorAlert('Silakan masukkan nomor HP Indonesia yang valid (minimal 10 digit).');
+      setErrorAlert('Silakan masukkan nomor HP yang valid (minimal 10 digit).');
       showToast('Nomor HP tidak valid.', 'error');
       return;
     }
@@ -88,7 +87,6 @@ export default function Login({ onNavigateToForgotPassword }) {
 
     setIsLoading(true);
     setTimeout(() => {
-      // Backend automatically checks credentials and routes to Admin or Teacher Dashboard
       const res = login(phone, password);
       setIsLoading(false);
 
@@ -141,55 +139,43 @@ export default function Login({ onNavigateToForgotPassword }) {
 
   return (
     <div className="flex-1 flex flex-col justify-between bg-slate-50 min-h-full">
-      {/* 1. Header & Identity */}
-      <div className="bg-gradient-to-r from-slate-900 via-brand-950 to-blue-950 text-white shadow-soft-md border-b-2 border-emerald-500">
-        {/* Top Government/Institution Micro Bar */}
-        <div className="px-5 py-2 bg-black/30 border-b border-white/10 flex items-center justify-between text-[10px] text-slate-300">
-          <div className="flex items-center gap-1.5 font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span>PORTAL RESMI GTK & KEPENGAWASAN</span>
-          </div>
-          <span className="font-mono text-emerald-300 font-bold">VERSI 2026.1</span>
+      {/* 1. Header / Logo Area (Clean, Minimalist, Ample Whitespace) */}
+      <div className="pt-8 sm:pt-12 pb-4 px-6 text-center">
+        {/* Ikon Topi Toga (Logo) di tengah di dalam lingkaran hijau pastel */}
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4 text-green-600 shadow-xs">
+          <GraduationCap className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" />
         </div>
 
-        {/* Institution Brand Header */}
-        <div className="p-6 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/10 text-white border border-white/20 shadow-md backdrop-blur-md mb-2.5">
-            <GraduationCap className="w-8 h-8 text-emerald-300" />
-          </div>
-          <h1 className="text-xl font-black tracking-tight text-white uppercase leading-snug">
-            SISTEM INFORMASI GURU RJ
-          </h1>
-          <p className="text-xs text-emerald-200/90 font-bold tracking-wide mt-0.5">
-            YAYASAN PENDIDIKAN GURU RJ
-          </p>
-          <p className="text-[11px] text-slate-300 mt-1 max-w-xs mx-auto">
-            Portal Layanan Presensi, Jadwal Pelajaran, dan Administrasi Terpadu
-          </p>
-        </div>
+        {/* Teks Judul 2 Baris */}
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight">
+          Sistem Informasi Guru
+        </h1>
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight mt-0.5">
+          MTs Riyadlul Jannah
+        </h2>
       </div>
 
-      {/* 2. Main Form Card Container */}
-      <div className="p-4 sm:p-6 my-auto">
-        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-soft-md border border-slate-200/80 max-w-md mx-auto">
+      {/* 2. Form Login Card Container */}
+      <div className="px-4 sm:px-6 py-2 my-auto w-full">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-100 max-w-sm sm:max-w-md mx-auto">
           {/* ============================================================== */}
           {/* VIEW 1: UNIFIED LOGIN VIEW (Nomor HP & Kata Sandi)             */}
           {/* ============================================================== */}
           {viewMode === 'login' && (
             <div className="animate-in fade-in duration-200">
-              {/* Form Title & Subtitle */}
-              <div className="mb-5 text-center">
-                <h2 className="text-lg font-black text-slate-800 tracking-tight">
+              {/* Form Title: Rata Kiri & Font Modern */}
+              <div className="mb-5 text-left">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">
                   Masuk ke Akun
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Masukkan Nomor HP dan Password untuk mengakses portal
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Masukkan Nomor HP dan Password untuk mengakses sistem
                 </p>
               </div>
 
               {/* Error Alert Box */}
               {errorAlert && (
-                <div className="mb-4 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-2.5 animate-in fade-in duration-150">
+                <div className="mb-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-2.5 animate-in fade-in duration-150">
                   <AlertOctagon className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
                   <p className="text-xs font-semibold leading-relaxed text-rose-700">
                     {errorAlert}
@@ -200,7 +186,7 @@ export default function Login({ onNavigateToForgotPassword }) {
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 {/* Input 1: Nomor HP */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 text-left">
                     Nomor HP
                   </label>
                   <div className="relative">
@@ -214,7 +200,7 @@ export default function Login({ onNavigateToForgotPassword }) {
                         if (errorAlert) setErrorAlert('');
                       }}
                       placeholder="contoh: 081234567890"
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"
+                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition"
                     />
                   </div>
                 </div>
@@ -222,16 +208,15 @@ export default function Login({ onNavigateToForgotPassword }) {
                 {/* Input 2: Password + Lupa Password */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-700">
+                    <label className="text-xs font-semibold text-slate-600">
                       Password
                     </label>
-                    {/* Link: Lupa Password? */}
                     <button
                       type="button"
                       onClick={onNavigateToForgotPassword}
-                      className="text-[11px] font-bold text-brand-700 hover:text-brand-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                      className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
                     >
-                      <KeyRound className="w-3 h-3 text-brand-600" />
+                      <KeyRound className="w-3 h-3 text-emerald-600" />
                       <span>Lupa Password?</span>
                     </button>
                   </div>
@@ -247,7 +232,7 @@ export default function Login({ onNavigateToForgotPassword }) {
                         if (errorAlert) setErrorAlert('');
                       }}
                       placeholder="Masukkan password akun"
-                      className="w-full pl-10 pr-11 py-3 rounded-2xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"
+                      className="w-full pl-10 pr-11 py-3 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition"
                     />
                     <button
                       type="button"
@@ -263,7 +248,7 @@ export default function Login({ onNavigateToForgotPassword }) {
                 <button
                   type="submit"
                   disabled={isLoading || !phone.trim() || !password}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-brand-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99] cursor-pointer mt-1"
+                  className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99] cursor-pointer mt-2"
                 >
                   {isLoading ? (
                     <>
@@ -279,14 +264,20 @@ export default function Login({ onNavigateToForgotPassword }) {
                 </button>
               </form>
 
-              {/* Below button toggle link: "Belum punya akun? Daftar di sini" */}
+              {/* Toggle ke Register */}
               <div className="mt-5 pt-4 text-center border-t border-slate-100">
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-slate-500">
                   Belum punya akun?{' '}
                   <button
                     type="button"
-                    onClick={() => handleSwitchView('register')}
-                    className="font-bold text-brand-600 hover:text-brand-700 hover:underline ml-0.5 cursor-pointer"
+                    onClick={() => {
+                      if (onNavigateToRegister) {
+                        onNavigateToRegister();
+                      } else {
+                        handleSwitchView('register');
+                      }
+                    }}
+                    className="font-bold text-emerald-600 hover:text-emerald-700 hover:underline ml-0.5 cursor-pointer"
                   >
                     Daftar di sini
                   </button>
@@ -300,13 +291,13 @@ export default function Login({ onNavigateToForgotPassword }) {
           {/* ============================================================== */}
           {viewMode === 'register' && (
             <div className="animate-in fade-in duration-200">
-              {/* Form Title & Subtitle */}
-              <div className="mb-5 text-center">
-                <h2 className="text-lg font-black text-slate-800 tracking-tight">
+              {/* Form Title: Rata Kiri */}
+              <div className="mb-5 text-left">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight">
                   Daftar Akun Baru
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Lengkapi data di bawah ini untuk membuat akun Anda
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Lengkapi data di bawah ini untuk membuat akun pendidik
                 </p>
               </div>
 
@@ -320,7 +311,7 @@ export default function Login({ onNavigateToForgotPassword }) {
               <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
                 {/* 1. Nama Lengkap */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 text-left">
                     Nama Lengkap
                   </label>
                   <div className="relative">
@@ -331,14 +322,14 @@ export default function Login({ onNavigateToForgotPassword }) {
                       value={regFullName}
                       onChange={(e) => setRegFullName(e.target.value)}
                       placeholder="contoh: Budi Santoso, S.Pd."
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition"
                     />
                   </div>
                 </div>
 
                 {/* 2. Nomor HP */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 text-left">
                     Nomor HP
                   </label>
                   <div className="relative">
@@ -349,14 +340,14 @@ export default function Login({ onNavigateToForgotPassword }) {
                       value={regPhone}
                       onChange={(e) => setRegPhone(e.target.value.replace(/[^\d+]/g, ''))}
                       placeholder="contoh: 081234567890"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition"
                     />
                   </div>
                 </div>
 
                 {/* 3. Password */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 text-left">
                     Password
                   </label>
                   <div className="relative">
@@ -367,7 +358,7 @@ export default function Login({ onNavigateToForgotPassword }) {
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       placeholder="Minimal 4 karakter (default: guru123)"
-                      className="w-full pl-10 pr-11 py-2.5 rounded-2xl bg-slate-50 border border-slate-300 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition"
+                      className="w-full pl-10 pr-11 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs sm:text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15 outline-none transition"
                     />
                     <button
                       type="button"
@@ -382,13 +373,13 @@ export default function Login({ onNavigateToForgotPassword }) {
                 {/* 4. Pilih Jabatan */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-700">
+                    <label className="text-xs font-semibold text-slate-600">
                       Pilih Jabatan ({regJabatan.length}/5)
                     </label>
-                    <span className="text-[10px] text-slate-500">Min 1, Maks 5</span>
+                    <span className="text-[10px] text-slate-400">Min 1, Maks 5</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-1.5 bg-gray-50 rounded-xl border border-gray-200">
                     {AVAILABLE_JABATAN.map((j) => {
                       const isSelected = regJabatan.includes(j);
                       const isDisabled = !isSelected && regJabatan.length >= 5;
@@ -399,36 +390,36 @@ export default function Login({ onNavigateToForgotPassword }) {
                           type="button"
                           onClick={() => handleToggleJabatan(j)}
                           disabled={isDisabled}
-                          className={`p-2 rounded-xl text-left text-[11px] font-bold border transition flex items-center justify-between cursor-pointer ${
+                          className={`p-2 rounded-xl text-left text-[11px] font-semibold border transition flex items-center justify-between cursor-pointer ${
                             isSelected
-                              ? 'bg-brand-50 border-brand-500 text-brand-900 shadow-2xs'
+                              ? 'bg-emerald-50 border-emerald-500 text-emerald-800 shadow-2xs font-bold'
                               : isDisabled
                               ? 'bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed'
-                              : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                              : 'bg-white border-gray-200 text-slate-700 hover:border-slate-300'
                           }`}
                         >
                           <span className="truncate mr-1">{j}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-brand-600 flex-shrink-0" />}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Role detection indicator based on selected Jabatan */}
+                {/* Role detection indicator */}
                 <div
                   className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 ${
                     isKepalaSekolah(regJabatan)
-                      ? 'bg-amber-50 border-amber-300 text-amber-900'
-                      : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                      ? 'bg-amber-50 border-amber-200 text-amber-900'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-900'
                   }`}
                 >
-                  <ShieldCheck className="w-4 h-4 flex-shrink-0 text-brand-700" />
-                  <div className="leading-tight">
-                    <span className="font-semibold block text-[10px] text-slate-500">
+                  <ShieldCheck className="w-4 h-4 flex-shrink-0 text-emerald-700" />
+                  <div className="leading-tight text-left">
+                    <span className="font-medium block text-[10px] text-slate-500">
                       Rute Dashboard Login:
                     </span>
-                    <strong className="text-xs">
+                    <strong className="text-xs font-bold">
                       {isKepalaSekolah(regJabatan)
                         ? '🏛️ Admin Dashboard (Kepala Sekolah)'
                         : '🎓 Teacher Dashboard (GTK)'}
@@ -440,7 +431,7 @@ export default function Login({ onNavigateToForgotPassword }) {
                 <button
                   type="submit"
                   disabled={isRegistering || !regFullName.trim() || !regPhone.trim() || !regPassword}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-brand-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99] cursor-pointer mt-1"
+                  className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.99] cursor-pointer mt-2"
                 >
                   {isRegistering ? (
                     <>
@@ -458,12 +449,12 @@ export default function Login({ onNavigateToForgotPassword }) {
 
               {/* Toggle Back to Login */}
               <div className="mt-5 pt-4 text-center border-t border-slate-100">
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-slate-500">
                   Sudah punya akun?{' '}
                   <button
                     type="button"
                     onClick={() => handleSwitchView('login')}
-                    className="font-bold text-brand-600 hover:text-brand-700 hover:underline ml-0.5 cursor-pointer"
+                    className="font-bold text-emerald-600 hover:text-emerald-700 hover:underline ml-0.5 cursor-pointer"
                   >
                     Masuk di sini
                   </button>
@@ -474,14 +465,9 @@ export default function Login({ onNavigateToForgotPassword }) {
         </div>
       </div>
 
-      {/* 3. Formal Portal Footer */}
-      <div className="text-center py-4 bg-slate-200/60 border-t border-slate-300/80 text-[11px] text-slate-500 space-y-0.5">
-        <p className="font-semibold text-slate-600">
-          © 2026 Yayasan Pendidikan Guru RJ • Terintegrasi Dapodik & EMIS
-        </p>
-        <p className="text-[10px] text-slate-400">
-          Pusat Data dan Informasi Pendidikan Terpadu • Seluruh Hak Cipta Dilindungi
-        </p>
+      {/* 3. Formal Minimalist Footer */}
+      <div className="text-center py-4 text-xs text-slate-400 font-medium">
+        © 2026 MTs Riyadlul Jannah • Sistem Presensi & Kepegawaian
       </div>
     </div>
   );
