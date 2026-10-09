@@ -10,21 +10,16 @@ export default function SalaryCard({
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-3.5 sm:p-4 mb-6 flex justify-between items-center transition-all">
       {/* Bagian Kiri (Info Saldo) */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 sm:gap-3">
         {/* Ikon Dompet di dalam lingkaran biru muda */}
         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
           <Wallet className="w-5 h-5 text-blue-600" />
         </div>
 
-        {/* Nominal Gaji & Subteks */}
-        <div>
-          <p className="text-[15px] sm:text-base font-bold text-slate-800 tracking-tight leading-snug whitespace-nowrap">
-            {amount}
-          </p>
-          <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 whitespace-nowrap">
-            {label}
-          </p>
-        </div>
+        {/* Nominal Gaji Utama (Rata tengah vertikal dengan ikon) */}
+        <span className="text-[15px] sm:text-base font-bold text-slate-800 tracking-tight leading-none whitespace-nowrap">
+          {amount}
+        </span>
       </div>
 
       {/* Bagian Kanan (Menu Aksi ala Gojek: Slip & Riwayat Gaji) */}

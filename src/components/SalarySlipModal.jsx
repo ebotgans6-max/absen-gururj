@@ -30,6 +30,7 @@ import {
   calculateDailyTransport,
   isOperator,
   getPeriodFromDate,
+  getCurrentPeriod,
   INDO_MONTHS,
   RATE_PER_SESSION,
   RATE_PER_BADAL_SESSION,
@@ -54,12 +55,9 @@ export default function SalarySlipModal({
 
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
-  // Compute current month and year string in Indonesian (e.g. "September 2026")
+  // Periode bulan dan tahun berjalan standar (contoh: "Oktober 2026")
   const currentMonthYear = useMemo(() => {
-    return new Date().toLocaleDateString('id-ID', {
-      month: 'long',
-      year: 'numeric',
-    });
+    return getCurrentPeriod();
   }, []);
 
   // Dropdown state: defaults to current month and year

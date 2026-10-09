@@ -252,6 +252,23 @@ export const getWorkdaysInPeriod = (periodStr) => {
   return getWorkdaysInMonth(monthIndex, year);
 };
 
+// Helper format nominal ke Rupiah standar (contoh: "Rp 3.500.000")
+export const formatRupiah = (val) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(val || 0);
+};
+
+// Mendapatkan nama periode bulan berjalan standar Indonesia (contoh: "Oktober 2026")
+export const getCurrentPeriod = (dateInput = new Date()) => {
+  const d = parseDateSafe(dateInput);
+  const monthIdx = d.getMonth();
+  const year = d.getFullYear();
+  return `${INDO_MONTHS[monthIdx]} ${year}`;
+};
+
 // Fungsi perhitungan transport otomatis khusus role Operator
 // 1. Operator mendapatkan uang transport otomatis Rp 25.000 per hari.
 // 2. HANYA berlaku untuk hari kerja: Senin sampai Jumat (Sabtu dan Minggu Rp 0).
