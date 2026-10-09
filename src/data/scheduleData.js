@@ -2,10 +2,18 @@ export const scheduleData = {
   MTS: {
     Senin: [
       {
-        waktu: "09.30 - 10.50",
+        waktu: "09.30 - 10.10",
         kelas7: "B. Jepang - Sensei Naka",
         kelas8: "IPA - Pak Fatih",
         kelas9: "Prakarya - Pak Febri",
+        kodeGuru: { kelas7: "NS", kelas8: "MF", kelas9: "F" },
+      },
+      {
+        waktu: "10.10 - 10.50",
+        kelas7: "B. Jepang - Sensei Naka",
+        kelas8: "IPA - Pak Fatih",
+        kelas9: "Prakarya - Pak Febri",
+        kodeGuru: { kelas7: "NS", kelas8: "MF", kelas9: "F" },
       },
       {
         waktu: "10.50 - 11.05",
@@ -13,24 +21,56 @@ export const scheduleData = {
         label: "ISTIRAHAT",
       },
       {
-        waktu: "11.05 - 12.20",
+        waktu: "11.05 - 11.40",
         kelas7: "PKN - Bu Dhita",
         kelas8: "B. Jepang - Sensei Naka",
         kelas9: "IPS - Pak Slamet",
+        kodeGuru: { kelas7: "DH", kelas8: "NS", kelas9: "SH" },
       },
       {
-        waktu: "12.20 - 13.40",
+        waktu: "11.40 - 12.20",
+        kelas7: "PKN - Bu Dhita",
+        kelas8: "B. Jepang - Sensei Naka",
+        kelas9: "IPS - Pak Slamet",
+        kodeGuru: { kelas7: "DH", kelas8: "NS", kelas9: "SH" },
+      },
+      {
+        waktu: "12.20 - 13.00",
         kelas7: "MTK - Bu Euis",
         kelas8: "Qurdis - Gus Anas",
         kelas9: "B. Jepang - Sensei Naka",
+        kodeGuru: { kelas7: "EH", kelas8: "An", kelas9: "NS" },
+      },
+      {
+        waktu: "13.00 - 13.40",
+        kelas7: "MTK - Bu Euis",
+        kelas8: "Qurdis - Gus Anas",
+        kelas9: "B. Jepang - Sensei Naka",
+        kodeGuru: { kelas7: "EH", kelas8: "An", kelas9: "NS" },
+      },
+      {
+        waktu: "14.00 - 15.20",
+        kelas7: "Japanese Club (Ekskul) - Sensei Naka",
+        kelas8: "Japanese Club (Ekskul) - Sensei Naka",
+        kelas9: "Japanese Club (Ekskul) - Sensei Naka",
+        kodeGuru: { kelas7: "NS", kelas8: "NS", kelas9: "NS" },
+        note: "Ekstrakurikuler",
       },
     ],
     Selasa: [
       {
-        waktu: "09.30 - 10.50",
+        waktu: "09.30 - 10.10",
         kelas7: "PJOK - Pak Slamet",
         kelas8: "Fiqih - Pak Alim",
         kelas9: "TIK - Pak Febri",
+        kodeGuru: { kelas7: "SH", kelas8: "NA", kelas9: "F" },
+      },
+      {
+        waktu: "10.10 - 10.50",
+        kelas7: "PJOK - Pak Slamet",
+        kelas8: "Fiqih - Pak Alim",
+        kelas9: "TIK - Pak Febri",
+        kodeGuru: { kelas7: "SH", kelas8: "NA", kelas9: "F" },
       },
       {
         waktu: "10.50 - 11.05",
@@ -38,24 +78,48 @@ export const scheduleData = {
         label: "ISTIRAHAT",
       },
       {
-        waktu: "11.05 - 12.20",
+        waktu: "11.05 - 11.40",
         kelas7: "Qurdis - Gus Anas",
         kelas8: "PKN - Bu Dhita",
         kelas9: "PJOK - Pak Slamet",
+        kodeGuru: { kelas7: "AN", kelas8: "DH", kelas9: "SH" },
       },
       {
-        waktu: "12.20 - 13.40",
+        waktu: "11.40 - 12.20",
+        kelas7: "Qurdis - Gus Anas",
+        kelas8: "PKN - Bu Dhita",
+        kelas9: "PJOK - Pak Slamet",
+        kodeGuru: { kelas7: "AN", kelas8: "DH", kelas9: "SH" },
+      },
+      {
+        waktu: "12.20 - 13.00",
         kelas7: "IPS - Pak Slamet",
         kelas8: "TIK - Pak Febri",
         kelas9: "IPA - Pak Fatih",
+        kodeGuru: { kelas7: "SH", kelas8: "F", kelas9: "MF" },
+      },
+      {
+        waktu: "13.00 - 13.40",
+        kelas7: "IPS - Pak Slamet",
+        kelas8: "TIK - Pak Febri",
+        kelas9: "IPA - Pak Fatih",
+        kodeGuru: { kelas7: "SH", kelas8: "F", kelas9: "MF" },
       },
     ],
     Rabu: [
       {
-        waktu: "09.30 - 10.50",
+        waktu: "09.30 - 10.10",
         kelas7: "B. Inggris - Bu Ayu",
         kelas8: "PJOK - Pak Slamet",
         kelas9: "B. Indo - Bu Ari",
+        kodeGuru: { kelas7: "Ay", kelas8: "SH", kelas9: "AR" },
+      },
+      {
+        waktu: "10.10 - 10.50",
+        kelas7: "B. Inggris - Bu Ayu",
+        kelas8: "PJOK - Pak Slamet",
+        kelas9: "B. Indo - Bu Ari",
+        kodeGuru: { kelas7: "Ay", kelas8: "SH", kelas9: "AR" },
       },
       {
         waktu: "10.50 - 11.05",
@@ -63,24 +127,48 @@ export const scheduleData = {
         label: "ISTIRAHAT",
       },
       {
-        waktu: "11.05 - 12.20",
+        waktu: "11.05 - 11.40",
         kelas7: "Fiqih - Pak Alim",
         kelas8: "Prakarya - Pak Febri",
-        kelas9: "Aqidah - Pak Iin",
+        kelas9: "PKN - Bu Dhita",
+        kodeGuru: { kelas7: "NA", kelas8: "F", kelas9: "DH" },
       },
       {
-        waktu: "12.20 - 13.40",
+        waktu: "11.40 - 12.20",
+        kelas7: "Fiqih - Pak Alim",
+        kelas8: "Prakarya - Pak Febri",
+        kelas9: "PKN - Bu Dhita",
+        kodeGuru: { kelas7: "NA", kelas8: "F", kelas9: "DH" },
+      },
+      {
+        waktu: "12.20 - 13.00",
         kelas7: "IPA - Pak Fatih",
         kelas8: "IPS - Pak Slamet",
-        kelas9: "MTK - Bu Euis",
+        kelas9: "Fiqih - Pak Alim",
+        kodeGuru: { kelas7: "MF", kelas8: "SH", kelas9: "NA" },
+      },
+      {
+        waktu: "13.00 - 13.40",
+        kelas7: "IPA - Pak Fatih",
+        kelas8: "IPS - Pak Slamet",
+        kelas9: "Fiqih - Pak Alim",
+        kodeGuru: { kelas7: "MF", kelas8: "SH", kelas9: "NA" },
       },
     ],
     Kamis: [
       {
-        waktu: "09.30 - 10.50",
-        kelas7: "PKN - Bu Dhita",
-        kelas8: "Fiqih - Pak Alim",
+        waktu: "09.30 - 10.10",
+        kelas7: "Aqidah - Pak Iin",
+        kelas8: "MTK - Bu Euis",
         kelas9: "B. Inggris - Bu Ayu",
+        kodeGuru: { kelas7: "IS", kelas8: "EH", kelas9: "Ay" },
+      },
+      {
+        waktu: "10.10 - 10.50",
+        kelas7: "Aqidah - Pak Iin",
+        kelas8: "MTK - Bu Euis",
+        kelas9: "B. Inggris - Bu Ayu",
+        kodeGuru: { kelas7: "IS", kelas8: "EH", kelas9: "Ay" },
       },
       {
         waktu: "10.50 - 11.05",
@@ -88,37 +176,81 @@ export const scheduleData = {
         label: "ISTIRAHAT",
       },
       {
-        waktu: "11.05 - 12.20",
+        waktu: "11.05 - 11.40",
         kelas7: "Prakarya - Pak Febri",
         kelas8: "Aqidah - Pak Iin",
         kelas9: "Qurdis - Gus Anas",
+        kodeGuru: { kelas7: "F", kelas8: "IS", kelas9: "An" },
       },
       {
-        waktu: "12.20 - 13.40",
+        waktu: "11.40 - 12.20",
+        kelas7: "Prakarya - Pak Febri",
+        kelas8: "Aqidah - Pak Iin",
+        kelas9: "Qurdis - Gus Anas",
+        kodeGuru: { kelas7: "F", kelas8: "IS", kelas9: "An" },
+      },
+      {
+        waktu: "12.20 - 13.00",
         kelas7: "TIK - Pak Febri",
         kelas8: "B. Inggris - Bu Ayu",
         kelas9: "B. Indo - Bu Ari",
+        kodeGuru: { kelas7: "F", kelas8: "AY", kelas9: "AR" },
+      },
+      {
+        waktu: "13.00 - 13.40",
+        kelas7: "TIK - Pak Febri",
+        kelas8: "B. Inggris - Bu Ayu",
+        kelas9: "B. Indo - Bu Ari",
+        kodeGuru: { kelas7: "F", kelas8: "AY", kelas9: "AR" },
       },
     ],
     Jumat: [
       {
-        waktu: "07.00 - 08.20",
+        waktu: "07.00 - 07.40",
         kelas7: "B. Arab - Bu Ana",
         kelas8: "B. Indo - Bu Ari",
         kelas9: "MTK - Bu Euis",
+        kodeGuru: { kelas7: "NH", kelas8: "AR", kelas9: "EH" },
       },
       {
-        waktu: "08.20 - 10.10",
+        waktu: "07.40 - 08.20",
+        kelas7: "B. Arab - Bu Ana",
+        kelas8: "B. Indo - Bu Ari",
+        kelas9: "MTK - Bu Euis",
+        kodeGuru: { kelas7: "NH", kelas8: "AR", kelas9: "EH" },
+      },
+      {
+        waktu: "08.20 - 09.00",
         kelas7: "MTK - Bu Euis",
         kelas8: "B. Arab - Bu Ana",
         kelas9: "Aqidah - Pak Iin",
-        note: "MBG 09.00 - 09.30",
+        kodeGuru: { kelas7: "EH", kelas8: "NH", kelas9: "IS" },
       },
       {
-        waktu: "10.10 - 11.30",
+        waktu: "09.00 - 09.30",
+        isBreak: true,
+        label: "MBG (Makan Bergizi Gratis / Istirahat)",
+      },
+      {
+        waktu: "09.30 - 10.10",
+        kelas7: "MTK - Bu Euis",
+        kelas8: "B. Arab - Bu Ana",
+        kelas9: "Aqidah - Pak Iin",
+        kodeGuru: { kelas7: "EH", kelas8: "NH", kelas9: "IS" },
+      },
+      {
+        waktu: "10.10 - 10.50",
         kelas7: "B. Indo - Bu Ari",
         kelas8: "MTK - Bu Euis",
         kelas9: "B. Arab - Bu Ana",
+        kodeGuru: { kelas7: "AR", kelas8: "EH", kelas9: "NH" },
+      },
+      {
+        waktu: "10.50 - 11.30",
+        kelas7: "B. Indo - Bu Ari",
+        kelas8: "MTK - Bu Euis",
+        kelas9: "B. Arab - Bu Ana",
+        kodeGuru: { kelas7: "AR", kelas8: "EH", kelas9: "NH" },
       },
     ],
     Sabtu: [
@@ -127,12 +259,14 @@ export const scheduleData = {
         kelas7: "Mandarin",
         kelas8: "Mandarin",
         kelas9: "Mandarin",
+        kodeGuru: { kelas7: "-", kelas8: "-", kelas9: "-" },
       },
       {
         waktu: "09.30 - 11.00",
         kelas7: "Pramuka",
         kelas8: "Pramuka",
         kelas9: "Pramuka",
+        kodeGuru: { kelas7: "-", kelas8: "-", kelas9: "-" },
       },
     ],
   },
@@ -268,6 +402,10 @@ export const scheduleData = {
   },
 };
 
+// Export individual level schedules for direct consumption
+export const jadwalMts = scheduleData.MTS;
+export const jadwalSmat = scheduleData.SMAT;
+
 export const SCHEDULE_TEACHERS = [
   'Sensei Naka',
   'Pak Fatih',
@@ -286,8 +424,26 @@ export const SCHEDULE_TEACHERS = [
   'Miss Harti',
 ];
 
+// Mapping kode guru resmi MTs & SMAT Riyadlul Jannah
+export const TEACHER_CODE_MAP = {
+  ns: ['sensei naka', 'naka'],
+  mf: ['pak fatih', 'fatih', 'muhammad fatih'],
+  f: ['pak febri', 'febri', 'febriyan'],
+  dh: ['bu dhita', 'dhita'],
+  sh: ['pak slamet', 'slamet'],
+  eh: ['bu euis', 'euis'],
+  an: ['gus anas', 'anas'],
+  na: ['pak alim', 'alim', 'nur alim'],
+  ay: ['bu ayu', 'ayu'],
+  ar: ['bu ari', 'ari'],
+  is: ['pak iin', 'iin', 'solihin', 'iin solihin'],
+  nh: ['bu ana', 'ana', 'nurul huda', 'nurul'],
+  sk: ['bu siti khuzaimah', 'siti khuzaimah', 'khuzaimah'],
+  mh: ['miss harti', 'harti'],
+};
+
 /**
- * Helper to match teacher names flexibly (e.g. "Sensei Naka" matches "Naka" or "Sensei Naka")
+ * Helper to match teacher names flexibly (e.g. "Sensei Naka" matches "Naka", "Sensei Naka", or code "NS")
  */
 export const isTeacherMatch = (scheduleItemText, targetTeacherName) => {
   if (!scheduleItemText || !targetTeacherName) return false;
@@ -299,6 +455,7 @@ export const isTeacherMatch = (scheduleItemText, targetTeacherName) => {
     name
       .toLowerCase()
       .replace(/^(pak|bu|gus|sensei|miss|mr|mrs|ust|ustadz|ustadzah)\s+/i, '')
+      .replace(/\s*\(.*?\)\s*/g, '')
       .trim();
 
   const cleanSlot = stripPrefix(teacherInSlot);
@@ -307,14 +464,22 @@ export const isTeacherMatch = (scheduleItemText, targetTeacherName) => {
   if (!cleanSlot || !cleanTarget) return false;
   if (cleanSlot === cleanTarget) return true;
 
-  // Support Febriyan / Febri / Kode Guru F alias
-  const isFebriSlot = cleanSlot === 'febri' || cleanSlot === 'febriyan';
-  const isFebriTarget =
-    cleanTarget === 'f' ||
-    cleanTarget === 'febri' ||
-    cleanTarget === 'febriyan' ||
-    cleanTarget.includes('febri');
-  if (isFebriSlot && isFebriTarget) return true;
+  // Support teacher code lookup from TEACHER_CODE_MAP
+  const targetCodeNames = TEACHER_CODE_MAP[cleanTarget] || [];
+  if (targetCodeNames.some((name) => cleanSlot.includes(name) || name.includes(cleanSlot))) {
+    return true;
+  }
+
+  const slotCodeNames = TEACHER_CODE_MAP[cleanSlot] || [];
+  if (slotCodeNames.some((name) => cleanTarget.includes(name) || name.includes(cleanTarget))) {
+    return true;
+  }
+
+  for (const [code, names] of Object.entries(TEACHER_CODE_MAP)) {
+    const matchesSlot = code === cleanSlot || names.some((n) => cleanSlot.includes(n) || n.includes(cleanSlot));
+    const matchesTarget = code === cleanTarget || names.some((n) => cleanTarget.includes(n) || n.includes(cleanTarget));
+    if (matchesSlot && matchesTarget) return true;
+  }
 
   if (cleanTarget.length >= 3 && cleanSlot.includes(cleanTarget)) return true;
   if (cleanSlot.length >= 3 && cleanTarget.includes(cleanSlot)) return true;
