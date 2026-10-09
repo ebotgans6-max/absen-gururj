@@ -36,6 +36,7 @@ import {
   normalizePhone,
   getJabatanAllowance,
   calculateDailyTransport,
+  isOperator,
   RATE_PER_SESSION,
   RATE_PER_BADAL_SESSION,
   AVAILABLE_JABATAN,
@@ -251,8 +252,18 @@ export default function AdminDashboard() {
       regularEarnings +
       badalSessions.length * (RATE_PER_BADAL_SESSION || 3000);
 
-    // 2. Uang Transport (calculated dynamically per day)
-    const transportData = calculateDailyTransport ? calculateDailyTransport(teacherSessions) : { totalTransport: 0, dailyBreakdown: [] };
+    // 2. Uang Transport (calculated dynamically per day / role Operator)
+    const isOp = isOperator(teacher);
+    const teacherAttendance = (attendance || []).filter((a) => a && normalizePhone(a.teacherPhone) === normalizePhone(teacher.phone));
+    const transportData = calculateDailyTransport
+      ? calculateDailyTransport(teacherSessions, {
+          user: teacher,
+          isOperator: isOp,
+          period: selectedPeriod,
+          attendance: teacherAttendance,
+          useCalendarMonth: isOp && teacherAttendance.length === 0 && teacherSessions.length === 0,
+        })
+      : { totalTransport: 0, dailyBreakdown: [] };
     const totalTransport = transportData?.totalTransport || 0;
 
     // 3. Tunjangan Jabatan
@@ -529,7 +540,19 @@ export default function AdminDashboard() {
   const detailSessionEarnings =
     detailRegularEarnings +
     detailBadalSessions.length * (RATE_PER_BADAL_SESSION || 3000);
-  const detailTransportData = calculateDailyTransport ? calculateDailyTransport(currentTeacherSessions) : { totalTransport: 0, dailyBreakdown: [] };
+  const isDetailOp = isOperator(currentTeacher);
+  const detailAttendance = (attendance || []).filter(
+    (a) => a && currentTeacher && normalizePhone(a.teacherPhone) === normalizePhone(currentTeacher.phone)
+  );
+  const detailTransportData = calculateDailyTransport
+    ? calculateDailyTransport(currentTeacherSessions, {
+        user: currentTeacher,
+        isOperator: isDetailOp,
+        period: selectedPeriod,
+        attendance: detailAttendance,
+        useCalendarMonth: isDetailOp && detailAttendance.length === 0 && currentTeacherSessions.length === 0,
+      })
+    : { totalTransport: 0, dailyBreakdown: [] };
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-full pb-10">

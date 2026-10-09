@@ -23,6 +23,9 @@ import {
   RATE_PER_BADAL_SESSION,
   INITIAL_COMPLETED_SESSIONS,
   calculateDailyTransport,
+  calculateOperatorTransport,
+  OPERATOR_DAILY_TRANSPORT,
+  isOperator,
   calculateSessionDuration,
   getPeriodFromDate,
   isKepalaSekolah,
@@ -681,6 +684,8 @@ export const AppProvider = ({ children }) => {
       (registeredUsers || []).find((u) => u && normalizePhone(u.phone) === norm) ||
       currentUser;
 
+    const isOp = isOperator(teacher);
+
     const allSessions = (completedSessions || []).filter((s) => {
       if (!s) return false;
       const matchesPhone = normalizePhone(s.teacherPhone) === norm;
@@ -691,6 +696,19 @@ export const AppProvider = ({ children }) => {
       if (!matchesPhone && !matchesName) return false;
       const sessPeriod = s.period || getPeriodFromDate(s.date);
       return !period || sessPeriod === period;
+    });
+
+    // Catatan absensi/kehadiran untuk guru/operator ini di periode terpilih
+    const teacherAttendance = (attendance || []).filter((a) => {
+      if (!a) return false;
+      const matchesPhone = normalizePhone(a.teacherPhone) === norm;
+      const matchesName =
+        a.teacherName &&
+        teacher?.name &&
+        a.teacherName.toLowerCase() === teacher.name.toLowerCase();
+      if (!matchesPhone && !matchesName) return false;
+      const attPeriod = a.period || getPeriodFromDate(a.date);
+      return !period || attPeriod === period;
     });
 
     const regularSessions = allSessions.filter((s) => !s?.isBadal && s?.type !== 'badal');
@@ -708,7 +726,16 @@ export const AppProvider = ({ children }) => {
     }, 0);
     const totalHonorBadal = totalBadalSessions * (RATE_PER_BADAL_SESSION || 3000);
 
-    const transportData = calculateDailyTransport ? calculateDailyTransport(allSessions) : { totalTransport: 0, dailyBreakdown: [] };
+    // Transport allowance: otomatis khusus Operator Rp 25.000/hari kerja (Senin-Jumat)
+    const transportData = calculateDailyTransport
+      ? calculateDailyTransport(allSessions, {
+          user: teacher,
+          isOperator: isOp,
+          period,
+          attendance: teacherAttendance,
+          useCalendarMonth: isOp && teacherAttendance.length === 0 && allSessions.length === 0,
+        })
+      : { totalTransport: 0, dailyBreakdown: [] };
     const totalTransport = transportData?.totalTransport || 0;
 
     const activeJabatan =
@@ -716,6 +743,8 @@ export const AppProvider = ({ children }) => {
         ? teacher.jabatan
         : typeof teacher?.jabatan === 'string'
         ? [teacher.jabatan]
+        : isOp
+        ? ['Operator']
         : ['Wali Kelas'];
     const totalTunjanganJabatan = activeJabatan.reduce(
       (sum, j) => sum + (getJabatanAllowance ? getJabatanAllowance(j) : 0),
@@ -726,6 +755,8 @@ export const AppProvider = ({ children }) => {
       totalHonorSesi + totalHonorBadal + totalTransport + totalTunjanganJabatan;
 
     return {
+      teacher,
+      isOperator: isOp,
       allSessions,
       regularSessions,
       badalSessions,
@@ -1633,6 +1664,9 @@ export const AppProvider = ({ children }) => {
         RATE_PER_SESSION,
         RATE_PER_BADAL_SESSION,
         calculateDailyTransport,
+        calculateOperatorTransport,
+        OPERATOR_DAILY_TRANSPORT,
+        isOperator,
         toast,
         showToast,
         hideToast,

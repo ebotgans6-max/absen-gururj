@@ -28,6 +28,7 @@ import {
   JABATAN_ALLOWANCES,
   getJabatanAllowance,
   calculateDailyTransport,
+  isOperator,
   getPeriodFromDate,
   INDO_MONTHS,
   RATE_PER_SESSION,
@@ -48,6 +49,7 @@ export default function SalarySlipModal({
     currentUser,
     teachers,
     registeredUsers,
+    attendance = [],
   } = useApp();
 
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -183,9 +185,29 @@ export default function SalarySlipModal({
   const totalMengajar = totalHonorSesi + totalHonorBadal;
 
   // 2. Daily Transport Allowance:
-  // Group checked sessions in selected month by DATE
-  // 1-2 sessions in a day = Rp 17.000 | > 2 sessions in a day = Rp 25.000
-  const transportData = calculateDailyTransport(teacherSessions);
+  // Guru reguler: 1-2 sesi = Rp 17.000 | > 2 sesi = Rp 25.000
+  // Khusus Operator: Otomatis Rp 25.000/hari kerja valid (Senin s/d Jumat, Sabtu & Minggu Rp 0)
+  const isOp = isOperator(resolvedProfile) || isOperator(activeJabatanList);
+
+  const teacherAttendance = (attendance || []).filter((a) => {
+    if (!a) return false;
+    const matchesPhone = normalizePhone(a.teacherPhone) === cleanPhone;
+    const matchesName =
+      a.teacherName &&
+      (activeSlip?.teacherName || teacherName) &&
+      a.teacherName.toLowerCase() === (activeSlip?.teacherName || teacherName).toLowerCase();
+    if (!matchesPhone && !matchesName) return false;
+    const attPeriod = a.period || getPeriodFromDate(a.date);
+    return !selectedPeriod || attPeriod === selectedPeriod;
+  });
+
+  const transportData = calculateDailyTransport(teacherSessions, {
+    user: resolvedProfile,
+    isOperator: isOp,
+    period: selectedPeriod,
+    attendance: teacherAttendance,
+    useCalendarMonth: isOp && teacherAttendance.length === 0 && teacherSessions.length === 0,
+  });
   const totalTransport = transportData.totalTransport;
 
   // 3. Total Tunjangan Jabatan: Calculated from active positions
@@ -404,7 +426,9 @@ export default function SalarySlipModal({
                       2. Total Uang Transport Harian
                     </h4>
                     <p className="text-[10px] text-slate-500 font-medium">
-                      1-2 sesi: Rp 17.000/hari • &gt;2 sesi: Rp 25.000/hari ({selectedPeriod})
+                      {isOp
+                        ? `Khusus Operator: Otomatis Rp 25.000/hari kerja (Senin - Jumat • Libur Weekend Rp 0)`
+                        : `1-2 sesi: Rp 17.000/hari • >2 sesi: Rp 25.000/hari (${selectedPeriod})`}
                     </p>
                   </div>
                 </div>
@@ -420,23 +444,45 @@ export default function SalarySlipModal({
                     {transportData.dailyBreakdown.map((dayGroup, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-2xl bg-teal-50/50 border border-teal-100/80 flex items-center justify-between text-xs"
+                        className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${
+                          dayGroup.isValidWorkday === false
+                            ? 'bg-slate-50 border-slate-200 opacity-60'
+                            : 'bg-teal-50/50 border-teal-100/80'
+                        }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-xl bg-white border border-teal-200 text-teal-700 flex items-center justify-center shadow-2xs font-bold text-[11px]">
+                          <div
+                            className={`w-7 h-7 rounded-xl border flex items-center justify-center shadow-2xs font-bold text-[11px] ${
+                              dayGroup.isValidWorkday === false
+                                ? 'bg-slate-100 border-slate-300 text-slate-400'
+                                : 'bg-white border-teal-200 text-teal-700'
+                            }`}
+                          >
                             {idx + 1}
                           </div>
                           <div>
                             <p className="font-extrabold text-slate-800 leading-tight">
                               {dayGroup.day ? `${dayGroup.day}, ` : ''}{dayGroup.date}
                             </p>
-                            <p className="text-[10px] text-teal-700 font-medium mt-0.5">
-                              {dayGroup.sessionCount} Sesi Mengajar ({dayGroup.tier})
+                            <p
+                              className={`text-[10px] font-medium mt-0.5 ${
+                                dayGroup.isValidWorkday === false ? 'text-slate-400' : 'text-teal-700'
+                              }`}
+                            >
+                              {isOp
+                                ? dayGroup.tier || 'Transport Operator (Senin-Jumat • Rp 25.000)'
+                                : `${dayGroup.sessionCount} Sesi Mengajar (${dayGroup.tier})`}
                             </p>
                           </div>
                         </div>
 
-                        <span className="font-black text-teal-800 text-xs px-2.5 py-1 rounded-xl bg-teal-100/80 border border-teal-200 flex-shrink-0">
+                        <span
+                          className={`font-black text-xs px-2.5 py-1 rounded-xl border flex-shrink-0 ${
+                            dayGroup.isValidWorkday === false
+                              ? 'bg-slate-100 text-slate-400 border-slate-200'
+                              : 'bg-teal-100/80 text-teal-800 border-teal-200'
+                          }`}
+                        >
                           +{formatRupiah(dayGroup.allowance)}
                         </span>
                       </div>
@@ -445,7 +491,9 @@ export default function SalarySlipModal({
                 ) : (
                   <div className="p-3 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center">
                     <p className="text-xs text-slate-500">
-                      Uang transport dihitung otomatis per hari berdasarkan sesi mengajar periode {selectedPeriod}.
+                      {isOp
+                        ? `Uang transport Operator dihitung otomatis Rp 25.000 per hari kerja (Senin s/d Jumat) pada periode ${selectedPeriod}.`
+                        : `Uang transport dihitung otomatis per hari berdasarkan sesi mengajar periode ${selectedPeriod}.`}
                     </p>
                   </div>
                 )}

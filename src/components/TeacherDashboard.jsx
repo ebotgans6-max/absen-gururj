@@ -18,11 +18,19 @@ import MenuLainnyaModal from './MenuLainnyaModal';
 import SalaryCard from './SalaryCard';
 import TeacherGridMenu from './TeacherGridMenu';
 import RecentAttendanceCard from './RecentAttendanceCard';
-import { normalizePhone, getScheduleHoursForDate } from '../data/initialData';
+import { normalizePhone, getScheduleHoursForDate, isOperator } from '../data/initialData';
 import { initDailyAttendanceReminder, sendTestAttendanceReminder } from '../utils/localNotifications';
 
 export default function TeacherDashboard() {
-  const { currentUser, logout, clockOut, isClockedInToday, attendance = [], showToast } = useApp();
+  const {
+    currentUser,
+    logout,
+    clockOut,
+    isClockedInToday,
+    attendance = [],
+    showToast,
+    calculateTeacherSalary,
+  } = useApp();
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [attendanceTargetDate, setAttendanceTargetDate] = useState(null);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
@@ -116,6 +124,27 @@ export default function TeacherDashboard() {
     showToast('Membuka riwayat slip dan rekapitulasi gaji bulanan Anda.', 'info', 'Riwayat Gaji 📄');
   };
 
+  const currentMonthPeriod = new Date().toLocaleDateString('id-ID', {
+    month: 'long',
+    year: 'numeric',
+  });
+  const isOp = isOperator(currentUser);
+  const salaryCalc = calculateTeacherSalary ? calculateTeacherSalary(currentUser?.phone, currentMonthPeriod) : null;
+
+  const displaySalaryAmount = salaryCalc?.grandTotalSalary !== undefined
+    ? new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0,
+      }).format(salaryCalc.grandTotalSalary)
+    : isOp
+    ? 'Rp 850.000'
+    : 'Rp 3.500.000';
+
+  const displaySalaryLabel = isOp
+    ? 'Honor & Uang Transport Operator'
+    : 'Honor Mengajar Bulan Ini';
+
   return (
     <div className="flex-1 flex flex-col bg-slate-50 min-h-full pb-10">
       {/* Modern Top Header / Navbar */}
@@ -208,8 +237,8 @@ export default function TeacherDashboard() {
       <div className="p-4 sm:p-5 max-w-lg mx-auto w-full">
         {/* Card Saldo/Gaji ala GoPay di paling atas */}
         <SalaryCard
-          amount="Rp 3.500.000"
-          label="Honor Mengajar Bulan Ini"
+          amount={displaySalaryAmount}
+          label={displaySalaryLabel}
           onSalarySlip={() => setIsSalaryOpen(true)}
           onHistory={handleSalaryHistoryClick}
         />

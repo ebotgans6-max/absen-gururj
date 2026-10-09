@@ -8,6 +8,7 @@ export const AVAILABLE_JABATAN = [
   'WK Kesiswaan MTs',
   'Wk Kesiswaan SMAT',
   'Wali Kelas',
+  'Operator',
   'Oprator',
 ];
 
@@ -37,6 +38,30 @@ export const getJabatanAllowance = (roleName) => {
   if (clean.includes('kesiswaan')) return 300000;
   if (clean === 'wali kelas' || clean === 'walas') return 100000;
   return 0;
+};
+
+// Helper to check if a user or jabatan represents the "Operator" role
+export const isOperator = (userOrJabatan) => {
+  if (!userOrJabatan) return false;
+  if (typeof userOrJabatan === 'object' && !Array.isArray(userOrJabatan)) {
+    if (userOrJabatan.role && typeof userOrJabatan.role === 'string') {
+      const cleanRole = userOrJabatan.role.trim().toLowerCase();
+      if (cleanRole === 'operator' || cleanRole === 'oprator') return true;
+    }
+    return isOperator(userOrJabatan.jabatan);
+  }
+  if (Array.isArray(userOrJabatan)) {
+    return userOrJabatan.some((j) => {
+      if (typeof j !== 'string') return false;
+      const clean = j.trim().toLowerCase();
+      return clean === 'operator' || clean === 'oprator' || clean.includes('operator') || clean.includes('oprator');
+    });
+  }
+  if (typeof userOrJabatan === 'string') {
+    const clean = userOrJabatan.trim().toLowerCase();
+    return clean === 'operator' || clean === 'oprator' || clean.includes('operator') || clean.includes('oprator');
+  }
+  return false;
 };
 
 // Helper to check if a user's registered jabatan includes "Kepala Sekolah" (Requirement 24)
@@ -133,10 +158,256 @@ export const calculateSessionDuration = (timeStr, explicitDuration) => {
   return 1;
 };
 
-// Daily Transport Allowance calculation based on sessions per date
-// 1 to 2 sessions in a day -> Rp 17.000
-// > 2 sessions in a day -> Rp 25.000
-export const calculateDailyTransport = (sessions = []) => {
+// Rate Uang Transport Operator per Hari Kerja (Rp 25.000)
+// Aturan: Hanya dihitung Senin sampai Jumat (Sabtu dan Minggu Rp 0)
+export const OPERATOR_DAILY_TRANSPORT = 25000;
+
+// Helper aman untuk parse tanggal tanpa timezone drift
+export const parseDateSafe = (dateInput) => {
+  if (!dateInput) return new Date();
+  if (dateInput instanceof Date) return dateInput;
+  if (typeof dateInput === 'string') {
+    const isoMatch = dateInput.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (isoMatch) {
+      return new Date(
+        parseInt(isoMatch[1], 10),
+        parseInt(isoMatch[2], 10) - 1,
+        parseInt(isoMatch[3], 10)
+      );
+    }
+    return new Date(dateInput);
+  }
+  return new Date(dateInput);
+};
+
+// Cek apakah tanggal jatuh pada hari kerja (Senin s/d Jumat)
+// JavaScript getDay(): 0: Minggu, 1: Senin, 2: Selasa, 3: Rabu, 4: Kamis, 5: Jumat, 6: Sabtu
+export const isWorkday = (dateInput) => {
+  const d = parseDateSafe(dateInput);
+  if (isNaN(d.getTime())) return false;
+  const day = d.getDay();
+  return day >= 1 && day <= 5; // HANYA Senin - Jumat
+};
+
+// Cek apakah tanggal jatuh pada akhir pekan (Sabtu atau Minggu)
+export const isWeekend = (dateInput) => {
+  const d = parseDateSafe(dateInput);
+  if (isNaN(d.getTime())) return false;
+  const day = d.getDay();
+  return day === 0 || day === 6; // Minggu (0) atau Sabtu (6)
+};
+
+// Helper mendapatkan nama hari Bahasa Indonesia
+export const getIndoDayName = (dateInput) => {
+  const d = parseDateSafe(dateInput);
+  if (isNaN(d.getTime())) return '';
+  const names = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  return names[d.getDay()] || '';
+};
+
+// Parse string nama periode (misal "Oktober 2026") menjadi { monthIndex, year }
+export const parsePeriod = (periodStr) => {
+  const now = new Date();
+  if (!periodStr || typeof periodStr !== 'string') {
+    return { monthIndex: now.getMonth(), year: now.getFullYear() };
+  }
+  for (let i = 0; i < INDO_MONTHS.length; i++) {
+    const m = INDO_MONTHS[i].toLowerCase();
+    if (periodStr.toLowerCase().includes(m)) {
+      const yearMatch = periodStr.match(/\d{4}/);
+      const year = yearMatch ? parseInt(yearMatch[0], 10) : now.getFullYear();
+      return { monthIndex: i, year };
+    }
+  }
+  const yyyyMm = periodStr.match(/^(\d{4})-(\d{1,2})/);
+  if (yyyyMm) {
+    return { monthIndex: parseInt(yyyyMm[2], 10) - 1, year: parseInt(yyyyMm[1], 10) };
+  }
+  return { monthIndex: now.getMonth(), year: now.getFullYear() };
+};
+
+// Mendapatkan daftar seluruh hari kerja valid (Senin s/d Jumat) dalam satu bulan kalender
+export const getWorkdaysInMonth = (monthIndex, year = new Date().getFullYear()) => {
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const workdays = [];
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, monthIndex, day);
+    const dayOfWeek = d.getDay();
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      workdays.push({
+        date: `${yyyy}-${mm}-${dd}`,
+        day: getIndoDayName(d),
+        dayNumber: day,
+        dayOfWeek,
+      });
+    }
+  }
+  return workdays;
+};
+
+// Mendapatkan daftar hari kerja (Senin s/d Jumat) berdasarkan string periode (e.g. "Oktober 2026")
+export const getWorkdaysInPeriod = (periodStr) => {
+  const { monthIndex, year } = parsePeriod(periodStr);
+  return getWorkdaysInMonth(monthIndex, year);
+};
+
+// Fungsi perhitungan transport otomatis khusus role Operator
+// 1. Operator mendapatkan uang transport otomatis Rp 25.000 per hari.
+// 2. HANYA berlaku untuk hari kerja: Senin sampai Jumat (Sabtu dan Minggu Rp 0).
+// 3. Mengalikan jumlah hari kerja (Senin-Jumat) yang valid dengan Rp 25.000.
+export const calculateOperatorTransport = ({
+  period,
+  attendanceRecords = [],
+  sessions = [],
+  useCalendarMonth = false,
+} = {}) => {
+  const ratePerDay = OPERATOR_DAILY_TRANSPORT; // Rp 25.000 per hari kerja
+
+  // 1. Kumpulkan seluruh record tanggal unik dari presensi atau sesi
+  const dateMap = new Map();
+
+  (attendanceRecords || []).forEach((att) => {
+    if (!att || !att.date) return;
+    if (period) {
+      const recPeriod = att.period || getPeriodFromDate(att.date);
+      if (recPeriod && recPeriod !== period) return;
+    }
+    const dateKey = att.date;
+    if (!dateMap.has(dateKey)) {
+      dateMap.set(dateKey, { date: dateKey, attendance: att, sessions: [] });
+    }
+  });
+
+  (sessions || []).forEach((sess) => {
+    if (!sess || !sess.date) return;
+    if (period) {
+      const sessPeriod = sess.period || getPeriodFromDate(sess.date);
+      if (sessPeriod && sessPeriod !== period) return;
+    }
+    const dateKey = sess.date;
+    if (!dateMap.has(dateKey)) {
+      dateMap.set(dateKey, { date: dateKey, attendance: null, sessions: [sess] });
+    } else {
+      dateMap.get(dateKey).sessions.push(sess);
+    }
+  });
+
+  // Jika useCalendarMonth ATAU tidak ada tanggal spesifik (misal perhitungan estimasi saldo bulanan standar)
+  if (dateMap.size === 0 || useCalendarMonth) {
+    const calendarWorkdays = getWorkdaysInPeriod(period);
+    const dailyBreakdown = calendarWorkdays.map((item) => ({
+      date: item.date,
+      day: item.day,
+      dayOfWeek: item.dayOfWeek,
+      sessionCount: 0,
+      allowance: ratePerDay, // Rp 25.000
+      tier: 'Transport Operator (Senin-Jumat • Rp 25.000)',
+      isValidWorkday: true,
+      sessions: [],
+    }));
+
+    const validDaysCount = dailyBreakdown.length;
+    const totalTransport = validDaysCount * ratePerDay;
+
+    return {
+      dailyBreakdown,
+      totalTransport,
+      validDaysCount,
+      activeDaysCount: validDaysCount,
+      ratePerDay,
+      isOperator: true,
+      calculationBasis: 'calendar_workdays',
+    };
+  }
+
+  // Jika ada record kehadiran/sesi:
+  // Validasi hari: HANYA Senin - Jumat yang dapat Rp 25.000, Sabtu dan Minggu Rp 0
+  const sortedDates = Array.from(dateMap.keys()).sort();
+  const dailyBreakdown = sortedDates.map((dateStr) => {
+    const d = parseDateSafe(dateStr);
+    const dayOfWeek = d.getDay();
+    const dayName = getIndoDayName(d);
+    const isValid = dayOfWeek >= 1 && dayOfWeek <= 5; // Senin s/d Jumat
+    const entry = dateMap.get(dateStr);
+
+    let allowance = 0;
+    let tier = '';
+
+    if (isValid) {
+      allowance = ratePerDay; // Rp 25.000
+      tier = 'Transport Operator (Senin-Jumat • Rp 25.000)';
+    } else {
+      allowance = 0; // Sabtu atau Minggu tidak dapat
+      tier = 'Weekend (Sabtu/Minggu • Tidak Dapat Transport)';
+    }
+
+    return {
+      date: dateStr,
+      day: dayName,
+      dayOfWeek,
+      sessionCount: entry?.sessions?.length || 0,
+      allowance,
+      tier,
+      isValidWorkday: isValid,
+      sessions: entry?.sessions || [],
+      attendance: entry?.attendance || null,
+    };
+  });
+
+  const validDays = dailyBreakdown.filter((d) => d.isValidWorkday);
+  const validDaysCount = validDays.length;
+  const totalTransport = validDaysCount * ratePerDay;
+
+  return {
+    dailyBreakdown,
+    totalTransport,
+    validDaysCount,
+    activeDaysCount: dailyBreakdown.length,
+    ratePerDay,
+    isOperator: true,
+    calculationBasis: 'recorded_workdays',
+  };
+};
+
+// Daily Transport Allowance calculation
+// Mendukung kalkulasi reguler (berdasarkan sesi mengajar) dan kalkulasi khusus role "Operator"
+export const calculateDailyTransport = (sessions = [], optionsOrUser = {}) => {
+  // Cek apakah target adalah Operator
+  let isOp = false;
+  let period = null;
+  let attendanceRecords = [];
+  let useCalendarMonth = false;
+
+  if (typeof optionsOrUser === 'string' || Array.isArray(optionsOrUser)) {
+    isOp = isOperator(optionsOrUser);
+  } else if (optionsOrUser && typeof optionsOrUser === 'object') {
+    isOp = Boolean(
+      optionsOrUser.isOperator ||
+      isOperator(optionsOrUser.user) ||
+      isOperator(optionsOrUser.jabatan) ||
+      isOperator(optionsOrUser.role) ||
+      isOperator(optionsOrUser)
+    );
+    period = optionsOrUser.period || null;
+    attendanceRecords = optionsOrUser.attendance || optionsOrUser.attendanceRecords || [];
+    useCalendarMonth = Boolean(optionsOrUser.useCalendarMonth);
+  }
+
+  // Jika role Operator: Terpanggil logika transport khusus Operator
+  if (isOp) {
+    return calculateOperatorTransport({
+      period,
+      attendanceRecords,
+      sessions,
+      useCalendarMonth,
+    });
+  }
+
+  // Jika bukan Operator (Guru Reguler): Berdasarkan sesi mengajar
+  // 1-2 sesi -> Rp 17.000, >2 sesi -> Rp 25.000
   const groupsByDate = {};
 
   sessions.forEach((s) => {
@@ -167,6 +438,7 @@ export const calculateDailyTransport = (sessions = []) => {
       allowance,
       tier,
       sessions: daySessions,
+      isValidWorkday: isWorkday(date),
     };
   });
 
@@ -176,6 +448,8 @@ export const calculateDailyTransport = (sessions = []) => {
     dailyBreakdown,
     totalTransport,
     activeDaysCount: dailyBreakdown.length,
+    validDaysCount: dailyBreakdown.length,
+    isOperator: false,
   };
 };
 
