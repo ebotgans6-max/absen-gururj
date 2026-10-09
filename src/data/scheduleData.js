@@ -65,12 +65,12 @@ export const scheduleData = {
       {
         waktu: "11.05 - 12.20",
         kelas7: "Fiqih - Pak Alim",
-        kelas8: "IPA - Pak Fatih",
+        kelas8: "Prakarya - Pak Febri",
         kelas9: "Aqidah - Pak Iin",
       },
       {
         waktu: "12.20 - 13.40",
-        kelas7: "Prakarya - Pak Febri",
+        kelas7: "IPA - Pak Fatih",
         kelas8: "IPS - Pak Slamet",
         kelas9: "MTK - Bu Euis",
       },
@@ -199,7 +199,7 @@ export const scheduleData = {
       },
       {
         waktu: "12.25 - 13.45",
-        kelas10: "Sejarah - Bu Siti Khuzaimah",
+        kelas10: "TIK - Pak Febri",
         kelas11: "B. Indo - Bu Ari",
       },
     ],
@@ -217,11 +217,11 @@ export const scheduleData = {
       {
         waktu: "11.10 - 12.25",
         kelas10: "Sosio - Bu Ayu",
-        kelas11: "TIK - Pak Febri",
+        kelas11: "Sejarah - Bu Siti Khuzaimah",
       },
       {
         waktu: "12.25 - 13.45",
-        kelas10: "TIK - Pak Febri",
+        kelas10: "PKN - Bu Ayu",
         kelas11: "PAI - Bu Siti Khuzaimah",
       },
     ],
@@ -232,10 +232,20 @@ export const scheduleData = {
         kelas11: "B. Inggris - Miss Harti",
       },
       {
-        waktu: "08.25 - 10.15",
+        waktu: "08.25 - 09.05",
         kelas10: "PKN - Bu Ayu",
         kelas11: "TIK - Pak Febri",
-        note: "MBG 09.05 - 09.35",
+      },
+      {
+        waktu: "09.05 - 09.35",
+        isBreak: true,
+        label: "ISTIRAHAT MBG",
+      },
+      {
+        waktu: "09.35 - 10.15",
+        kelas10: "PKN - Bu Ayu",
+        kelas11: "TIK - Pak Febri",
+        note: "Lanjutan setelah istirahat MBG",
       },
       {
         waktu: "10.15 - 11.35",
@@ -262,6 +272,7 @@ export const SCHEDULE_TEACHERS = [
   'Sensei Naka',
   'Pak Fatih',
   'Pak Febri',
+  'Febriyan',
   'Bu Dhita',
   'Pak Slamet',
   'Bu Euis',
@@ -295,7 +306,18 @@ export const isTeacherMatch = (scheduleItemText, targetTeacherName) => {
 
   if (!cleanSlot || !cleanTarget) return false;
   if (cleanSlot === cleanTarget) return true;
-  if (cleanTarget.includes(cleanSlot) || cleanSlot.includes(cleanTarget)) return true;
+
+  // Support Febriyan / Febri / Kode Guru F alias
+  const isFebriSlot = cleanSlot === 'febri' || cleanSlot === 'febriyan';
+  const isFebriTarget =
+    cleanTarget === 'f' ||
+    cleanTarget === 'febri' ||
+    cleanTarget === 'febriyan' ||
+    cleanTarget.includes('febri');
+  if (isFebriSlot && isFebriTarget) return true;
+
+  if (cleanTarget.length >= 3 && cleanSlot.includes(cleanTarget)) return true;
+  if (cleanSlot.length >= 3 && cleanTarget.includes(cleanSlot)) return true;
 
   const slotWords = cleanSlot.split(/\s+/).filter((w) => w.length >= 3);
   const targetWords = cleanTarget.split(/\s+/).filter((w) => w.length >= 3);
