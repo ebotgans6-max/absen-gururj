@@ -579,186 +579,69 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
           </button>
         </div>
 
-        {/* Live Payroll Earning Highlight Banner */}
-        <div className="bg-emerald-50 px-4 py-2 sm:px-5 sm:py-2.5 border-b border-emerald-100 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-emerald-900">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
-              <Wallet className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-[10px] sm:text-[11px] text-emerald-700 font-semibold leading-tight">
-                Total Sesi Terverifikasi Bulan Ini:
-              </p>
-              <p className="text-xs font-black text-emerald-950">
-                {myCompletedSessions.length} Sesi Selesai
-              </p>
-            </div>
-          </div>
-          <div className="text-right flex-shrink-0">
-            <p className="text-[10px] text-emerald-700 font-semibold">Akumulasi Honor</p>
-            <p className="text-sm font-black text-brand-700">{formatRupiah(totalMyHonor)}</p>
-          </div>
-        </div>
-
-        {/* Warning Message Alert based on Attendance Status (Past days Absen Susulan or Today) */}
+        {/* 1. Banner Peringatan (Presensi): Slim alert bar tepat di bawah header */}
         {isClaimLocked && (
-          <div
-            className={`mx-3 sm:mx-4 mt-2 p-2.5 sm:p-3 rounded-2xl border flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200 shadow-soft-xs ${
-              lockReasonType === 'absent'
-                ? 'bg-rose-50/95 border-rose-200 text-rose-950'
-                : lockReasonType === 'backdate_needed'
-                ? 'bg-amber-50/95 border-amber-300 text-amber-950'
-                : 'bg-amber-50/95 border-amber-200 text-amber-950'
-            }`}
-          >
-            <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs ${
-                lockReasonType === 'absent'
-                  ? 'bg-rose-600 text-white'
-                  : lockReasonType === 'backdate_needed'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-amber-500 text-white'
-              }`}
+          <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2 flex items-center justify-between text-xs animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 text-amber-900 min-w-0 pr-2">
+              <Lock className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+              <span className="text-[11px] font-medium truncate">
+                Absen masuk diperlukan untuk klaim
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleQuickCheckIn(isPastDay)}
+              className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold transition active:scale-95 cursor-pointer flex-shrink-0 shadow-2xs"
             >
-              {lockReasonType === 'backdate_needed' ? (
-                <Clock className="w-4 h-4" />
-              ) : (
-                <Lock className="w-4 h-4" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                <h4 className="text-xs font-black tracking-wide flex items-center gap-1.5 text-slate-900">
-                  <span>
-                    {lockReasonType === 'absent'
-                      ? 'Klaim Sesi Ditutup'
-                      : lockReasonType === 'backdate_needed'
-                      ? 'Absen Susulan Diperlukan'
-                      : lockReasonType === 'future'
-                      ? 'Jadwal Hari Mendatang'
-                      : 'Presensi Masuk Diperlukan'}
-                  </span>
-                  {targetDateStatus && (
-                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-200/90 text-rose-900">
-                      Status: {targetDateStatus}
-                    </span>
-                  )}
-                  {isPastDay && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-900">
-                      {formatIndoDateBadge(selectedDate)}
-                    </span>
-                  )}
-                </h4>
-
-                {/* Quick Check-in Buttons */}
-                {lockReasonType === 'backdate_needed' && (
-                  <div className="flex items-center gap-1.5 mt-1 sm:mt-0">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickCheckIn(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold shadow-xs transition active:scale-95 cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Absen Susulan (Hadir)</span>
-                    </button>
-                    {onOpenAttendance && (
-                      <button
-                        type="button"
-                        onClick={() => onOpenAttendance(selectedDate)}
-                        className="text-[11px] font-semibold text-amber-800 hover:underline px-1 py-1 cursor-pointer"
-                      >
-                        Pilihan Lain
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {lockReasonType === 'not_clocked_in' && (
-                  <div className="flex items-center gap-1.5 mt-1 sm:mt-0">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickCheckIn(false)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs transition active:scale-95 cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Absen Masuk (Hadir)</span>
-                    </button>
-                    {onOpenAttendance && (
-                      <button
-                        type="button"
-                        onClick={() => onOpenAttendance(selectedDate)}
-                        className="text-[11px] font-semibold text-emerald-800 hover:underline px-1 py-1 cursor-pointer"
-                      >
-                        Detail
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-              <p className="text-xs font-medium mt-1 leading-snug text-slate-700">
-                {lockMessage}
-              </p>
-              {targetDateRecord?.note && (
-                <p className="text-[11px] mt-1.5 text-rose-900 italic bg-white/90 px-2.5 py-1 rounded-xl border border-rose-200/60">
-                  Keterangan: "{targetDateRecord.note}"
-                </p>
-              )}
-            </div>
+              Hadir
+            </button>
           </div>
         )}
 
-        {/* Level Selector & Quick Date Selector (Two Rows for Mobile Comfort) */}
-        <div className="px-3.5 sm:px-5 py-2.5 sm:py-3 bg-slate-50 border-b border-slate-200/80 flex flex-col gap-2.5 sm:gap-3">
-          {/* Row 1: Level Toggle MTS vs SMAT */}
-          <div className="w-full flex bg-slate-200/80 p-1 rounded-2xl shadow-inner-xs">
-            <button
-              type="button"
-              onClick={() => handleLevelChange('MTS')}
-              className={`flex-1 py-1.5 sm:py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                selectedLevel === 'MTS'
-                  ? 'bg-brand-600 text-white shadow-xs shadow-brand-600/30'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <School className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="whitespace-nowrap">MTS (Kelas 7, 8, 9)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleLevelChange('SMAT')}
-              className={`flex-1 py-1.5 sm:py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                selectedLevel === 'SMAT'
-                  ? 'bg-brand-600 text-white shadow-xs shadow-brand-600/30'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <School className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="whitespace-nowrap">SMAT (Kelas 10, 11)</span>
-            </button>
-          </div>
+        {/* 2. Ringkasan Honor (Sesi & Akumulasi): Latar putih bersih (bg-white) satu baris dengan border-b tipis */}
+        <div className="bg-white px-4 sm:px-5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-800">
+            {myCompletedSessions.length} Sesi Selesai
+          </span>
+          <span className="text-xs sm:text-sm font-extrabold text-emerald-600">
+            {formatRupiah(totalMyHonor)}
+          </span>
+        </div>
 
-          {/* Row 2: Presensi Hadir Badge & Date Picker */}
-          <div className="flex flex-row justify-between items-center w-full gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              {targetDateRecord && targetDateStatus === 'Hadir' ? (
-                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300/80 text-[11px] font-bold inline-flex items-center gap-1.5 shadow-2xs whitespace-nowrap">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                  <span>Presensi Hadir ✓</span>
-                </span>
-              ) : isClaimLocked ? (
-                <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300/70 text-[10px] sm:text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs whitespace-nowrap">
-                  <Lock className="w-3 h-3 text-amber-700 flex-shrink-0" />
-                  <span>Klaim Terkunci</span>
-                </span>
-              ) : (
-                <span className="text-[11px] font-semibold text-slate-500 truncate">
-                  Pilih tanggal presensi:
-                </span>
-              )}
+        {/* 3. Filter & Navigasi Ringkas (Maksimal 2 Baris Saja) */}
+        <div className="bg-white px-4 sm:px-5 py-2.5 border-b border-slate-100 space-y-2.5">
+          {/* Baris 1: Tab MTS vs SMAT sederhana (underline aktif) di kiri, Date Picker di kanan */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => handleLevelChange('MTS')}
+                className={`pb-1 transition border-b-2 cursor-pointer ${
+                  selectedLevel === 'MTS'
+                    ? 'border-emerald-600 text-emerald-700'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                MTS
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLevelChange('SMAT')}
+                className={`pb-1 transition border-b-2 cursor-pointer ${
+                  selectedLevel === 'SMAT'
+                    ? 'border-emerald-600 text-emerald-700'
+                    : 'border-transparent text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                SMAT
+              </button>
             </div>
 
-            <div className="flex items-center gap-1.5 text-xs text-slate-600 flex-shrink-0">
-              <span className="text-[11px] font-bold text-slate-500">Tgl:</span>
+            {/* Date Picker (Tanggal & Hari) */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-slate-400">
+                {selectedDay},
+              </span>
               <input
                 type="date"
                 value={selectedDate}
@@ -776,92 +659,57 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
                     }
                   }
                 }}
-                className="text-xs font-semibold px-2.5 py-1 rounded-xl border border-slate-200 bg-white text-slate-800 outline-none cursor-pointer focus:ring-1 focus:ring-brand-500 shadow-2xs"
+                className="text-xs font-semibold px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 outline-none cursor-pointer focus:border-emerald-500 shadow-2xs"
               />
             </div>
           </div>
-        </div>
 
-        {/* Day Selector Pills */}
-        <div className="w-full bg-white border-b border-slate-100">
-          <div className="flex flex-row overflow-x-auto flex-nowrap hide-scrollbar no-scrollbar w-full px-3.5 sm:px-5 py-2.5 gap-2 items-center">
-            {days.map((day) => (
-              <button
-                key={day}
-                type="button"
-                onClick={() => {
-                  setSelectedDay(day);
-                  setSelectedDate(getDateForDay(day));
-                }}
-                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center cursor-pointer ${
-                  selectedDay === day
-                    ? 'bg-brand-600 text-white shadow-xs shadow-brand-600/30 border border-brand-600'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/70'
-                }`}
-              >
-                {day}
-              </button>
-            ))}
-            {/* Generous right-side breathing room so last item (Sabtu) is never clipped */}
-            <div className="pr-6 flex-shrink-0" />
-          </div>
-        </div>
+          {/* Baris 2: Search + Select Dropdown Kelas + Toggle Jadwal Saya */}
+          <div className="flex items-center gap-2">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari mapel / guru..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs focus:bg-white focus:border-emerald-500 outline-none text-slate-800 transition shadow-2xs"
+              />
+            </div>
 
-        {/* Filter and Search Bar */}
-        <div className="px-3.5 sm:px-5 py-2.5 bg-slate-50/80 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 text-xs">
-          <div className="flex items-center gap-1.5 overflow-x-auto flex-nowrap hide-scrollbar no-scrollbar py-0.5 w-full sm:w-auto">
+            {/* Select Dropdown Kelas kecil agar hemat tempat */}
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="px-2.5 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-emerald-500 text-slate-700 cursor-pointer flex-shrink-0 transition shadow-2xs"
+            >
+              {classOptions.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
             {/* Quick Toggle: Jadwal Saya */}
             <button
               type="button"
               onClick={() => setOnlyMySchedule(!onlyMySchedule)}
-              className={`px-3 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer shadow-2xs ${
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 cursor-pointer flex-shrink-0 shadow-2xs ${
                 onlyMySchedule
-                  ? 'bg-emerald-600 text-white border border-emerald-600 shadow-xs'
-                  : 'bg-white border border-emerald-300/80 text-emerald-800 hover:bg-emerald-50'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                  : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
               }`}
-              title="Filter khusus jadwal mengajar nama Anda"
+              title="Hanya Jadwal Saya"
             >
               <UserCheck className="w-3.5 h-3.5" />
-              <span>{onlyMySchedule ? '⭐ Jadwal Saya (Aktif)' : `Jadwal Saya (${currentUser?.name || 'Guru'})`}</span>
+              <span className="hidden sm:inline text-[11px]">Jadwal Saya</span>
             </button>
-
-            <span className="text-[11px] font-bold text-slate-300 mx-0.5 flex-shrink-0">|</span>
-
-            <span className="text-[11px] font-bold text-slate-500 mr-0.5 flex items-center gap-1 flex-shrink-0">
-              <Filter className="w-3.5 h-3.5" />
-              <span>Kelas:</span>
-            </span>
-            {classOptions.map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => setSelectedClass(opt.key)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition flex-shrink-0 cursor-pointer ${
-                  selectedClass === opt.key
-                    ? 'bg-emerald-700 text-white shadow-xs'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-            <div className="pr-4 sm:hidden flex-shrink-0" />
-          </div>
-
-          <div className="relative min-w-[170px] sm:w-56 flex-shrink-0">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari mapel / nama guru..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs focus:border-brand-500 outline-none shadow-2xs"
-            />
           </div>
         </div>
 
-        {/* Schedule List Content */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-3 flex-1 bg-slate-50">
+        {/* 4. Schedule List Content: bg-gray-50 agar card jadwal lebih menonjol */}
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-3 flex-1 bg-gray-50">
           <div className="flex items-center justify-between text-xs text-slate-500 font-medium px-1">
             <span>
               Jadwal <strong>{selectedLevel}</strong> • Hari <strong>{selectedDay}</strong>
@@ -939,7 +787,7 @@ export default function ScheduleModal({ isOpen, onClose, teacherName, onOpenAtte
               return (
                 <div
                   key={`slot-${idx}`}
-                  className="bg-white rounded-2xl p-4 shadow-soft-sm border border-slate-100 hover:border-brand-200 transition-all space-y-3"
+                  className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200/60 hover:border-emerald-300 transition-all space-y-3"
                 >
                   {/* Time Header */}
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
