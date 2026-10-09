@@ -31,6 +31,7 @@ import {
   isOperator,
   getPeriodFromDate,
   getCurrentPeriod,
+  sanitizeJabatanList,
   INDO_MONTHS,
   RATE_PER_SESSION,
   RATE_PER_BADAL_SESSION,
@@ -131,15 +132,9 @@ export default function SalarySlipModal({
       : (teachers || []).find((t) => t && (normalizePhone(t.phone) === cleanPhone || (teacherName && t.name && t.name.toLowerCase() === teacherName.toLowerCase()))) ||
         (registeredUsers || []).find((u) => u && (normalizePhone(u.phone) === cleanPhone || (teacherName && u.name && u.name.toLowerCase() === teacherName.toLowerCase())));
 
-  const activeJabatanList = Array.isArray(resolvedProfile?.jabatan) && resolvedProfile.jabatan.length > 0
-    ? resolvedProfile.jabatan
-    : typeof resolvedProfile?.jabatan === 'string'
-    ? [resolvedProfile.jabatan]
-    : Array.isArray(currentUser?.jabatan) && currentUser.jabatan.length > 0
-    ? currentUser.jabatan
-    : typeof currentUser?.jabatan === 'string'
-    ? [currentUser.jabatan]
-    : ['Wali Kelas'];
+  const activeJabatanList = sanitizeJabatanList(
+    resolvedProfile?.jabatan || currentUser?.jabatan
+  );
 
   // Dynamically filter checked/completed sessions for the selected month and year
   const teacherSessions = useMemo(() => {

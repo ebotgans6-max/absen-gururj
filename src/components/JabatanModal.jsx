@@ -11,23 +11,21 @@ import {
   Info,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { AVAILABLE_JABATAN } from '../data/initialData';
+import { AVAILABLE_JABATAN, sanitizeJabatanList } from '../data/initialData';
 
 export default function JabatanModal({ isOpen, onClose }) {
   const { currentUser, updateTeacherProfile, showToast } = useApp();
 
-  // Initialize selected positions from current user's profile
+  // Initialize selected positions from current user's profile with sanitation
   const [selectedJabatan, setSelectedJabatan] = useState(() => {
-    return Array.isArray(currentUser?.jabatan) && currentUser.jabatan.length > 0
-      ? currentUser.jabatan
-      : ['Wali Kelas'];
+    return sanitizeJabatanList(currentUser?.jabatan);
   });
 
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (currentUser?.jabatan) {
-      setSelectedJabatan(currentUser.jabatan);
+      setSelectedJabatan(sanitizeJabatanList(currentUser.jabatan));
     }
   }, [currentUser]);
 
@@ -54,13 +52,14 @@ export default function JabatanModal({ isOpen, onClose }) {
 
   const handleSave = (e) => {
     e.preventDefault();
-    if (selectedJabatan.length < 1 || selectedJabatan.length > 5) {
+    const cleanList = sanitizeJabatanList(selectedJabatan);
+    if (cleanList.length < 1 || cleanList.length > 5) {
       setErrorMsg('Pilih minimal 1 jabatan dan maksimal 5 jabatan.');
       return;
     }
 
     const res = updateTeacherProfile(currentUser.phone, {
-      jabatan: selectedJabatan,
+      jabatan: cleanList,
     });
 
     if (res.success) {

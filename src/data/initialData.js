@@ -62,6 +62,33 @@ export const isOperator = (userOrJabatan) => {
   return false;
 };
 
+// Helper to sanitize and filter jabatan list: removes typos like "Oprator", normalizes, and deduplicates
+export const sanitizeJabatanList = (rawJabatan) => {
+  if (!rawJabatan) return ['Wali Kelas'];
+  const list = Array.isArray(rawJabatan)
+    ? rawJabatan
+    : typeof rawJabatan === 'string'
+    ? [rawJabatan]
+    : [];
+
+  const seen = new Set();
+  const cleaned = [];
+
+  list.forEach((j) => {
+    if (!j || typeof j !== 'string') return;
+    const trimmed = j.trim();
+    // Normalize typo "Oprator" -> "Operator"
+    const normalized = trimmed.toLowerCase() === 'oprator' ? 'Operator' : trimmed;
+    // Filter out explicit "Oprator" typo and deduplicate
+    if (normalized.toLowerCase() !== 'oprator' && !seen.has(normalized)) {
+      seen.add(normalized);
+      cleaned.push(normalized);
+    }
+  });
+
+  return cleaned.length > 0 ? cleaned : ['Wali Kelas'];
+};
+
 // Helper to check if a user's registered jabatan includes "Kepala Sekolah" (Requirement 24)
 export const isKepalaSekolah = (jabatan) => {
   if (!jabatan) return false;

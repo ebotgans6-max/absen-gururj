@@ -24,6 +24,7 @@ import {
   isOperator,
   getCurrentPeriod,
   formatRupiah,
+  sanitizeJabatanList,
 } from '../data/initialData';
 import { initDailyAttendanceReminder, sendTestAttendanceReminder } from '../utils/localNotifications';
 
@@ -153,12 +154,7 @@ export default function TeacherDashboard() {
 
             {/* Jabatan Pills */}
             <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-              {(Array.isArray(currentUser?.jabatan) && currentUser.jabatan.length > 0
-                ? currentUser.jabatan
-                : typeof currentUser?.jabatan === 'string'
-                ? [currentUser.jabatan]
-                : ['Wali Kelas']
-              ).map((jab) => (
+              {sanitizeJabatanList(currentUser?.jabatan).map((jab) => (
                 <span
                   key={jab}
                   className="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-[10px] font-bold shadow-2xs flex items-center gap-1"
