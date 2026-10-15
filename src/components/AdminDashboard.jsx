@@ -26,6 +26,7 @@ import {
   Eye,
   GraduationCap,
   KeyRound,
+  Trash2,
 } from 'lucide-react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
@@ -62,6 +63,7 @@ export default function AdminDashboard() {
     completedSessions = [],
     adminMarkAttendance,
     adminResetPassword,
+    deleteTeacher,
     resetAllData,
     showToast,
   } = useApp();
@@ -157,6 +159,45 @@ export default function AdminDashboard() {
     if (!resetTargetTeacher) return;
     if (resetTargetTeacher?.phone) adminResetPassword(resetTargetTeacher.phone);
     setResetTargetTeacher(null);
+  };
+
+  // Requirement: Fitur Hapus Guru dengan konfirmasi window.confirm
+  const handleDeleteTeacher = async (teacherId) => {
+    if (!teacherId) return;
+    const isConfirmed = window.confirm('Apakah Anda yakin ingin menghapus guru ini?');
+    if (!isConfirmed) return;
+
+    if (deleteTeacher) {
+      const res = await deleteTeacher(teacherId);
+      if (res?.success) {
+        showToast(`Data guru ${res.name || ''} berhasil dihapus.`, 'success', 'Guru Dihapus');
+      }
+    } else {
+      try {
+        const saved = localStorage.getItem('guru_rj_teachers_v2');
+        if (saved) {
+          const list = JSON.parse(saved);
+          const filtered = list.filter((t) => {
+            const idMatch = t.id && t.id === teacherId;
+            const phoneMatch = t.phone && (t.phone === teacherId || normalizePhone(t.phone) === normalizePhone(typeof teacherId === 'string' ? teacherId : teacherId.phone || ''));
+            return !idMatch && !phoneMatch;
+          });
+          localStorage.setItem('guru_rj_teachers_v2', JSON.stringify(filtered));
+        }
+        showToast('Data guru berhasil dihapus dari penyimpanan lokal.', 'success', 'Guru Dihapus');
+      } catch (e) {
+        console.error('Error deleting teacher from localStorage:', e);
+      }
+    }
+
+    if (
+      selectedTeacherForDetail &&
+      (selectedTeacherForDetail.id === teacherId ||
+        selectedTeacherForDetail.phone === teacherId ||
+        (typeof teacherId === 'object' && selectedTeacherForDetail.phone === teacherId?.phone))
+    ) {
+      setSelectedTeacherForDetail('all');
+    }
   };
 
   // ==============================================================
@@ -806,15 +847,26 @@ export default function AdminDashboard() {
                                     📱 {item.teacher?.phone || '-'}
                                   </span>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setResetTargetTeacher(item.teacher)}
-                                  className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
-                                  title={`Reset password ${item.teacher?.name || 'Guru'} ke default (guru123)`}
-                                >
-                                  <KeyRound className="w-3 h-3 text-amber-600" />
-                                  <span className="hidden sm:inline">Reset Password</span>
-                                </button>
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setResetTargetTeacher(item.teacher)}
+                                    className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
+                                    title={`Reset password ${item.teacher?.name || 'Guru'} ke default (guru123)`}
+                                  >
+                                    <KeyRound className="w-3 h-3 text-amber-600" />
+                                    <span className="hidden sm:inline">Reset Password</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTeacher(item.teacher?.id || item.teacher?.phone)}
+                                    className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 font-medium border border-red-200 rounded-lg text-[10px] inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
+                                    title={`Hapus data ${item.teacher?.name || 'guru ini'}`}
+                                  >
+                                    <Trash2 className="w-3 h-3 text-red-500" />
+                                    <span className="hidden sm:inline">Hapus</span>
+                                  </button>
+                                </div>
                               </div>
                             </td>
 
@@ -999,15 +1051,26 @@ export default function AdminDashboard() {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setResetTargetTeacher(item?.teacher || { name: item?.name, phone: item?.phone })}
-                        className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
-                        title={`Reset password ${item?.name || 'Guru'} ke default "guru123"`}
-                      >
-                        <KeyRound className="w-3 h-3 text-amber-600" />
-                        <span>Reset PW</span>
-                      </button>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setResetTargetTeacher(item?.teacher || { name: item?.name, phone: item?.phone })}
+                          className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
+                          title={`Reset password ${item?.name || 'Guru'} ke default "guru123"`}
+                        >
+                          <KeyRound className="w-3 h-3 text-amber-600" />
+                          <span>Reset PW</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTeacher(item?.teacher?.id || item?.teacher?.phone || item?.phone)}
+                          className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 font-medium border border-red-200 rounded-lg text-[10px] inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
+                          title={`Hapus data guru ${item?.name || 'Guru'}`}
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Card Body: Stacked Breakdown of Stats */}
@@ -1134,15 +1197,26 @@ export default function AdminDashboard() {
                                 📱 {item?.phone || '-'}
                               </span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setResetTargetTeacher(item?.teacher || { name: item?.name, phone: item?.phone })}
-                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
-                              title={`Reset password ${item?.name || 'Guru'} ke default (guru123)`}
-                            >
-                              <KeyRound className="w-3 h-3 text-amber-600" />
-                              <span className="hidden sm:inline">Reset Password</span>
-                            </button>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setResetTargetTeacher(item?.teacher || { name: item?.name, phone: item?.phone })}
+                                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
+                                title={`Reset password ${item?.name || 'Guru'} ke default (guru123)`}
+                              >
+                                <KeyRound className="w-3 h-3 text-amber-600" />
+                                <span className="hidden sm:inline">Reset Password</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTeacher(item?.teacher?.id || item?.teacher?.phone || item?.phone)}
+                                className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 font-medium border border-red-200 rounded-lg text-[10px] inline-flex items-center gap-1 transition cursor-pointer shadow-2xs flex-shrink-0"
+                                title={`Hapus data guru ${item?.name || 'Guru'}`}
+                              >
+                                <Trash2 className="w-3 h-3 text-red-500" />
+                                <span className="hidden sm:inline">Hapus</span>
+                              </button>
+                            </div>
                           </div>
                         </td>
 
@@ -1374,15 +1448,26 @@ export default function AdminDashboard() {
                     <span className="px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 text-[10px] font-black">
                       {currentDetailTeacher?.status || 'Pendidik Tetap'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setResetTargetTeacher(currentDetailTeacher)}
-                      className="px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                      title={`Reset password ${currentDetailTeacher?.name || 'Guru'} ke default (guru123)`}
-                    >
-                      <KeyRound className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Reset Password</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setResetTargetTeacher(currentDetailTeacher)}
+                        className="px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                        title={`Reset password ${currentDetailTeacher?.name || 'Guru'} ke default (guru123)`}
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Reset Password</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTeacher(currentDetailTeacher?.id || currentDetailTeacher?.phone)}
+                        className="px-2.5 py-1 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 font-medium border border-red-300 text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                        title={`Hapus data guru ${currentDetailTeacher?.name || 'Guru'}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        <span>Hapus</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1471,15 +1556,26 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="py-2.5 px-3.5 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => setResetTargetTeacher(t)}
-                              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
-                              title={`Reset password ${t?.name || 'Guru'} ke default "guru123"`}
-                            >
-                              <KeyRound className="w-3.5 h-3.5 text-amber-600" />
-                              <span>Reset Password</span>
-                            </button>
+                            <div className="inline-flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setResetTargetTeacher(t)}
+                                className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                                title={`Reset password ${t?.name || 'Guru'} ke default "guru123"`}
+                              >
+                                <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Reset Password</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTeacher(t?.id || t?.phone)}
+                                className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-700 font-medium border border-red-300 rounded-lg text-xs inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                                title={`Hapus data guru ${t?.name || 'Guru'}`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                <span>Hapus</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))

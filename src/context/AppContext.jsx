@@ -1244,6 +1244,73 @@ export const AppProvider = ({ children }) => {
     return { success: true };
   };
 
+  // Delete Teacher (Requirement: Hapus Guru dari data master & Firestore)
+  const deleteTeacher = async (teacherIdentifier) => {
+    if (!teacherIdentifier) return { success: false, error: 'Identifier tidak valid' };
+
+    let targetNorm = '';
+    let targetId = '';
+    let targetName = 'Guru';
+
+    if (typeof teacherIdentifier === 'string') {
+      targetNorm = normalizePhone(teacherIdentifier);
+      targetId = teacherIdentifier;
+    } else if (typeof teacherIdentifier === 'object' && teacherIdentifier !== null) {
+      targetNorm = normalizePhone(teacherIdentifier.phone || '');
+      targetId = teacherIdentifier.id || '';
+      targetName = teacherIdentifier.name || 'Guru';
+    }
+
+    // 1. Update State teachers
+    setTeachers((prev) => {
+      const updated = prev.filter((t) => {
+        const norm = normalizePhone(t.phone || '');
+        if (targetNorm && norm === targetNorm) {
+          targetName = t.name || targetName;
+          return false;
+        }
+        if (targetId && (t.id === targetId || t.phone === targetId)) {
+          targetName = t.name || targetName;
+          return false;
+        }
+        return true;
+      });
+      try {
+        localStorage.setItem('guru_rj_teachers_v2', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Error saving teachers to localStorage:', e);
+      }
+      return updated;
+    });
+
+    // 2. Also remove from registeredUsers if present
+    if (targetNorm) {
+      setRegisteredUsers((prev) => {
+        const updated = prev.filter((u) => normalizePhone(u.phone || '') !== targetNorm);
+        try {
+          localStorage.setItem('guru_rj_users', JSON.stringify(updated));
+        } catch (e) {}
+        return updated;
+      });
+    }
+
+    // 3. Remove from Firestore if online
+    if (targetNorm) {
+      try {
+        await deleteDoc(doc(db, 'teachers', targetNorm));
+      } catch (err) {
+        console.warn('Firestore delete teacher error:', err);
+      }
+      try {
+        await deleteDoc(doc(db, 'users', targetNorm));
+      } catch (err) {
+        console.warn('Firestore delete user error:', err);
+      }
+    }
+
+    return { success: true, name: targetName };
+  };
+
   // Update User Phone Number across all related collections
   const updateUserPhoneNumber = (oldPhone, newPhone) => {
     const normOld = normalizePhone(oldPhone);
@@ -1685,6 +1752,7 @@ export const AppProvider = ({ children }) => {
         register,
         resetPassword,
         adminResetPassword,
+        deleteTeacher,
         DEFAULT_TEACHER_PASSWORD,
         findUserByPhone,
         logout,
