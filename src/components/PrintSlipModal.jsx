@@ -123,9 +123,9 @@ export default function PrintSlipModal({ isOpen, onClose, slip, teacher }) {
               </div>
 
               {/* Teaching Sessions Itemized Recap */}
-              {slip.teachingSessionsList && slip.teachingSessionsList.length > 0 && (
+              {slip?.teachingSessionsList && slip.teachingSessionsList.length > 0 && (
                 <div className="mt-2 space-y-1 text-[10px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 max-h-36 overflow-y-auto">
-                  {slip.teachingSessionsList.map((s, i) => {
+                  {(slip.teachingSessionsList || [])?.map((s, i) => {
                     const isBadal = s.isBadal || s.type === 'badal';
                     return (
                       <div
@@ -154,7 +154,7 @@ export default function PrintSlipModal({ isOpen, onClose, slip, teacher }) {
               </div>
               <div className="space-y-1.5 text-xs text-slate-700">
                 {slip.transportData?.dailyBreakdown && slip.transportData.dailyBreakdown.length > 0 ? (
-                  slip.transportData.dailyBreakdown.map((item, idx) => (
+                  (slip.transportData.dailyBreakdown || [])?.map((item, idx) => (
                     <div
                       key={idx}
                       className="flex justify-between py-1 px-2.5 rounded-lg bg-teal-50/50 border border-teal-100"
@@ -191,7 +191,7 @@ export default function PrintSlipModal({ isOpen, onClose, slip, teacher }) {
               </div>
               <div className="space-y-1.5 text-xs text-slate-700">
                 {slip.jabatanAllowancesList && slip.jabatanAllowancesList.length > 0 ? (
-                  slip.jabatanAllowancesList.map((item, idx) => (
+                  (slip.jabatanAllowancesList || [])?.map((item, idx) => (
                     <div
                       key={idx}
                       className="flex justify-between py-1 px-2.5 rounded-lg bg-slate-50 border border-slate-100"

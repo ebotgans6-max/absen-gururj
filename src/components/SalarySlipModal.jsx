@@ -204,7 +204,7 @@ export default function SalarySlipModal({
   const totalTransport = transportData.totalTransport;
 
   // 3. Total Tunjangan Jabatan: Calculated from active positions
-  const jabatanAllowancesList = activeJabatanList.map((role) => ({
+  const jabatanAllowancesList = (activeJabatanList || [])?.map((role) => ({
     role,
     amount: getJabatanAllowance(role),
   }));
@@ -269,7 +269,7 @@ export default function SalarySlipModal({
                   onChange={(e) => setSelectedPeriod(e.target.value)}
                   className="w-full appearance-none pl-3.5 pr-8 py-2 text-xs font-bold text-slate-800 bg-white border border-slate-300 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 shadow-xs outline-none cursor-pointer transition hover:border-slate-400"
                 >
-                  {periodOptions.map((period) => (
+                  {(periodOptions || [])?.map((period) => (
                     <option key={period} value={period}>
                       {period} {period === currentMonthYear ? '• (Bulan Ini)' : ''}
                     </option>
@@ -346,7 +346,7 @@ export default function SalarySlipModal({
               <div className="mt-3 space-y-2">
                 {teacherSessions.length > 0 ? (
                   <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
-                    {teacherSessions.map((sess, idx) => {
+                    {(teacherSessions || [])?.map((sess, idx) => {
                       const isBadal = sess.isBadal || sess.type === 'badal';
                       return (
                         <div
@@ -434,7 +434,7 @@ export default function SalarySlipModal({
               <div className="mt-3 space-y-2">
                 {transportData?.dailyBreakdown && transportData.dailyBreakdown.length > 0 ? (
                   <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
-                    {transportData.dailyBreakdown.map((dayGroup, idx) => (
+                    {(transportData?.dailyBreakdown || [])?.map((dayGroup, idx) => (
                       <div
                         key={idx}
                         className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${
@@ -516,7 +516,7 @@ export default function SalarySlipModal({
 
               {/* Itemized List of Active Positions */}
               <div className="mt-3 space-y-2">
-                {jabatanAllowancesList.map((item, idx) => (
+                {(jabatanAllowancesList || [])?.map((item, idx) => (
                   <div
                     key={idx}
                     className="p-3 rounded-2xl bg-slate-50/80 hover:bg-emerald-50/40 border border-slate-200/70 transition flex items-center justify-between"

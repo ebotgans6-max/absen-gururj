@@ -117,7 +117,9 @@ export default function AdminDashboard() {
 
   // Filter States
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
-  const [selectedMonth, setSelectedMonth] = useState(currentMonthYear);
+  const [selectedPeriod, setSelectedPeriod] = useState(currentMonthYear);
+  const selectedMonth = selectedPeriod;
+  const setSelectedMonth = setSelectedPeriod;
   const [attendanceViewMode, setAttendanceViewMode] = useState('date'); // 'date' | 'month'
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'hadir' | 'sakit' | 'izin' | 'lainnya' | 'belum'
@@ -162,7 +164,7 @@ export default function AdminDashboard() {
   // ==============================================================
   const attendanceForSelectedDate = (attendance || []).filter((a) => a && a.date === selectedDate);
 
-  const teacherAttendanceStatusList = (teachers || []).map((t) => {
+  const teacherAttendanceStatusList = (teachers || [])?.map((t) => {
     if (!t) return null;
     const record = attendanceForSelectedDate.find((a) => {
       if (!a) return false;
@@ -215,9 +217,9 @@ export default function AdminDashboard() {
   // ==============================================================
   // 2. REKAP GAJI (GLOBAL PAYROLL) COMPUTATIONS
   // ==============================================================
-  const payrollDataList = (teachers || []).map((teacher) => {
+  const payrollDataList = (teachers || [])?.map((teacher) => {
     if (!teacher) return null;
-    // 1. Filter completed sessions for this teacher in selected month
+    // 1. Filter completed sessions for this teacher in selected month/period
     const teacherSessions = allTeachingSessions.filter((s) => {
       if (!s) return false;
       const matchPhone =
@@ -229,11 +231,12 @@ export default function AdminDashboard() {
          isTeacherMatch(s.teacherName, teacher.name));
       if (!matchPhone && !matchName) return false;
 
-      const sessionPeriod = s.period || (s.date ? getPeriodFromDate(s.date) : '');
+      const sessionPeriod = s?.period || (s?.date ? getPeriodFromDate(s.date) : '');
+      const currentPeriodValue = selectedPeriod || selectedMonth;
       const matchPeriod =
-        !selectedMonth ||
-        selectedMonth === 'all' ||
-        (sessionPeriod && sessionPeriod.toLowerCase() === selectedMonth.toLowerCase());
+        !currentPeriodValue ||
+        currentPeriodValue === 'all' ||
+        (sessionPeriod && sessionPeriod.toLowerCase() === currentPeriodValue.toLowerCase());
       return matchPeriod;
     });
 
@@ -294,9 +297,9 @@ export default function AdminDashboard() {
     };
   }).filter(Boolean);
 
-  const totalPayrollBudget = payrollDataList.reduce((acc, curr) => acc + curr.grandTotal, 0);
-  const totalSchoolSessions = payrollDataList.reduce((acc, curr) => acc + curr.sessionsCount, 0);
-  const totalSchoolTransport = payrollDataList.reduce((acc, curr) => acc + curr.totalTransport, 0);
+  const totalPayrollBudget = (payrollDataList || []).reduce((acc, curr) => acc + (curr?.grandTotal || 0), 0);
+  const totalSchoolSessions = (payrollDataList || []).reduce((acc, curr) => acc + (curr?.sessionsCount || 0), 0);
+  const totalSchoolTransport = (payrollDataList || []).reduce((acc, curr) => acc + (curr?.totalTransport || 0), 0);
 
   // Export Rekap Gaji ke PDF (Requirement 36 & 45: Android Capacitor Support)
   const exportRekapGajiPDF = async () => {
@@ -316,7 +319,7 @@ export default function AdminDashboard() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(71, 85, 105); // Slate 600
-      doc.text(`Periode: ${selectedMonth} | Total Guru: ${payrollDataList.length} Orang`, 14, 22);
+      doc.text(`Periode: ${selectedPeriod} | Total Guru: ${(payrollDataList || []).length} Orang`, 14, 22);
 
       const printDateStr = new Date().toLocaleDateString('id-ID', {
         day: 'numeric',
@@ -341,7 +344,7 @@ export default function AdminDashboard() {
       ];
 
       // Table Body
-      const tableData = payrollDataList.map((item, idx) => {
+      const tableData = (payrollDataList || [])?.map((item, idx) => {
         const jabatanStr = Array.isArray(item.activeJabatanList)
           ? item.activeJabatanList.join(', ')
           : (item.activeJabatanList || '-');
@@ -359,9 +362,9 @@ export default function AdminDashboard() {
       });
 
       // Table Summary Footer
-      const totalRegularSessionsAll = payrollDataList.reduce((sum, item) => sum + (item.regularSessionsCount || 0), 0);
-      const totalBadalSessionsAll = payrollDataList.reduce((sum, item) => sum + (item.badalSessionsCount || 0), 0);
-      const totalJabatanAllowanceAll = payrollDataList.reduce((sum, item) => sum + (item.totalTunjanganJabatan || 0), 0);
+      const totalRegularSessionsAll = (payrollDataList || []).reduce((sum, item) => sum + (item.regularSessionsCount || 0), 0);
+      const totalBadalSessionsAll = (payrollDataList || []).reduce((sum, item) => sum + (item.badalSessionsCount || 0), 0);
+      const totalJabatanAllowanceAll = (payrollDataList || []).reduce((sum, item) => sum + (item.totalTunjanganJabatan || 0), 0);
 
       const tableFoot = [
         [
@@ -425,7 +428,7 @@ export default function AdminDashboard() {
         },
       });
 
-      const fileName = `Rekapitulasi_Gaji_Guru_RJ_${selectedMonth.replace(/\s+/g, '_')}.pdf`;
+      const fileName = `Rekapitulasi_Gaji_Guru_RJ_${(selectedPeriod || 'periode').replace(/\s+/g, '_')}.pdf`;
       const pdfBase64 = doc.output('datauristring').split(',')[1];
 
       // Requirement 45: Android Device (Capacitor) Filesystem & Share Support
@@ -440,13 +443,13 @@ export default function AdminDashboard() {
         // 2. Trigger native Android share sheet with file's URI
         await Share.share({
           title: 'Rekapitulasi Gaji Guru RJ',
-          text: `Dokumen Rekapitulasi Gaji Guru MTs Riyadlul Jannah Periode ${selectedMonth}`,
+          text: `Dokumen Rekapitulasi Gaji Guru MTs Riyadlul Jannah Periode ${selectedPeriod}`,
           url: writeResult.uri,
           dialogTitle: 'Simpan atau Bagikan Rekap Gaji (PDF)',
         });
 
         showToast(
-          `Dokumen PDF Rekap Gaji (${selectedMonth}) siap dibagikan / disimpan.`,
+          `Dokumen PDF Rekap Gaji (${selectedPeriod}) siap dibagikan / disimpan.`,
           'success',
           'PDF Berhasil Dibuat'
         );
@@ -454,7 +457,7 @@ export default function AdminDashboard() {
         // Fallback for regular web browser preview
         doc.save(fileName);
         showToast(
-          `Dokumen PDF Rekap Gaji (${selectedMonth}) berhasil diunduh.`,
+          `Dokumen PDF Rekap Gaji (${selectedPeriod}) berhasil diunduh.`,
           'success',
           'PDF Berhasil Dibuat'
         );
@@ -471,7 +474,7 @@ export default function AdminDashboard() {
       id: `slip-${Date.now()}`,
       teacherName: item.name,
       teacherPhone: item.phone,
-      period: selectedMonth,
+      period: selectedPeriod,
       status: 'Diterbitkan',
       baseSalary: 0,
       functionalAllowance: item.totalTunjanganJabatan,
@@ -488,7 +491,7 @@ export default function AdminDashboard() {
       transportData: item.transportData,
       totalTransport: item.totalTransport,
       activeJabatanList: item.activeJabatanList,
-      jabatanAllowancesList: item.activeJabatanList.map((r) => ({
+      jabatanAllowancesList: (item?.activeJabatanList || [])?.map((r) => ({
         role: r,
         amount: getJabatanAllowance(r),
       })),
@@ -504,14 +507,16 @@ export default function AdminDashboard() {
   const currentDetailTeacher = isAllTeachers
     ? null
     : (selectedTeacherForDetail || (teachers && teachers.length > 0 ? teachers[0] : null));
+  const currentTeacher = currentDetailTeacher;
 
   const currentTeacherSessions = allTeachingSessions.filter((s) => {
     if (!s) return false;
-    const sessionPeriod = s.period || (s.date ? getPeriodFromDate(s.date) : '');
+    const sessionPeriod = s?.period || (s?.date ? getPeriodFromDate(s.date) : '');
+    const currentPeriodValue = selectedPeriod || selectedMonth;
     const matchPeriod =
-      !selectedMonth ||
-      selectedMonth === 'all' ||
-      (sessionPeriod && sessionPeriod.toLowerCase() === selectedMonth.toLowerCase());
+      !currentPeriodValue ||
+      currentPeriodValue === 'all' ||
+      (sessionPeriod && sessionPeriod.toLowerCase() === currentPeriodValue.toLowerCase());
     if (!matchPeriod) return false;
 
     if (isAllTeachers) return true;
@@ -542,7 +547,7 @@ export default function AdminDashboard() {
     detailBadalSessions.length * (RATE_PER_BADAL_SESSION || 3000);
   const isDetailOp = isOperator(currentTeacher);
   const detailAttendance = (attendance || []).filter(
-    (a) => a && currentTeacher && normalizePhone(a.teacherPhone) === normalizePhone(currentTeacher.phone)
+    (a) => a && currentTeacher && normalizePhone(a.teacherPhone) === normalizePhone(currentTeacher?.phone)
   );
   const detailTransportData = calculateDailyTransport
     ? calculateDailyTransport(currentTeacherSessions, {
@@ -774,7 +779,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
                     {filteredAttendanceList.length > 0 ? (
-                      filteredAttendanceList.map((item, idx) => {
+                      filteredAttendanceList?.map((item, idx) => {
                         const isHadir = item.status === 'Hadir';
                         const isSakit = item.status === 'Sakit';
                         const isIzin = item.status === 'Izin';
@@ -910,11 +915,11 @@ export default function AdminDashboard() {
               <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
                 {/* Month/Year Filter */}
                 <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
                   className="flex-1 sm:flex-initial sm:w-auto px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-brand-500 outline-none cursor-pointer"
                 >
-                  {availableMonths.map((m) => (
+                  {(availableMonths || [])?.map((m) => (
                     <option key={m} value={m}>
                       {m}
                     </option>
@@ -959,8 +964,8 @@ export default function AdminDashboard() {
 
             {/* Requirement 42: Mobile-Friendly "Card" Layout for Each Teacher (< md screens) */}
             <div className="md:hidden space-y-3">
-              {payrollDataList.length > 0 ? (
-                payrollDataList.map((item) => (
+              {(payrollDataList || []).length > 0 ? (
+                payrollDataList?.map((item) => (
                   <div
                     key={`card-${item?.phone || item?.name}`}
                     className="bg-white rounded-2xl p-3.5 shadow-soft-sm border border-slate-200/90 space-y-3"
@@ -983,7 +988,7 @@ export default function AdminDashboard() {
                         </span>
                         {/* Jabatan Badges */}
                         <div className="flex flex-wrap gap-1 mt-1.5">
-                          {(item?.activeJabatanList || []).map((j) => (
+                          {(item?.activeJabatanList || [])?.map((j) => (
                             <span
                               key={j}
                               className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9px] font-semibold"
@@ -1108,8 +1113,8 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {payrollDataList.length > 0 ? (
-                      payrollDataList.map((item) => (
+                    {(payrollDataList || []).length > 0 ? (
+                      payrollDataList?.map((item) => (
                       <tr key={item?.phone || item?.name} className="hover:bg-slate-50/80 transition">
                         {/* Column 1: Nama Guru & Reset Password Button */}
                         <td className="py-3 px-3.5">
@@ -1241,8 +1246,8 @@ export default function AdminDashboard() {
                   className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-brand-500 outline-none cursor-pointer max-w-[200px]"
                 >
                   <option value="all">👥 Semua Guru</option>
-                  {teachers && teachers.length > 0 ? (
-                    teachers.map((t) => (
+                  {(teachers || []).length > 0 ? (
+                    (teachers || [])?.map((t) => (
                       <option key={t?.phone || t?.name} value={t?.phone}>
                         {t?.name || 'Guru'}
                       </option>
@@ -1254,11 +1259,11 @@ export default function AdminDashboard() {
 
                 {/* Period Selector */}
                 <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
                   className="px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-brand-500 outline-none cursor-pointer"
                 >
-                  {availableMonths.map((m) => (
+                  {(availableMonths || [])?.map((m) => (
                     <option key={m} value={m}>
                       {m}
                     </option>
@@ -1280,7 +1285,7 @@ export default function AdminDashboard() {
                         Semua Guru (Rekap Log Kolektif)
                       </h4>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Menampilkan seluruh sesi mengajar GTK • Periode {selectedMonth}
+                        Menampilkan seluruh sesi mengajar GTK • Periode {selectedPeriod}
                       </p>
                       <div className="flex flex-wrap items-center gap-1 mt-1.5">
                         <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
@@ -1348,12 +1353,12 @@ export default function AdminDashboard() {
                       </p>
                       {/* Active Jabatan Badges */}
                       <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                        {(Array.isArray(currentDetailTeacher?.jabatan) && currentDetailTeacher?.jabatan?.length > 0
+                        {((Array.isArray(currentDetailTeacher?.jabatan) && currentDetailTeacher?.jabatan?.length > 0
                           ? currentDetailTeacher.jabatan
                           : typeof currentDetailTeacher?.jabatan === 'string'
                           ? [currentDetailTeacher.jabatan]
-                          : ['Wali Kelas']
-                        ).map((j) => (
+                          : ['Wali Kelas']) || []
+                        )?.map((j) => (
                           <span
                             key={j}
                             className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold"
@@ -1446,7 +1451,7 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
                     {(teachers || []).length > 0 ? (
-                      teachers.map((t) => (
+                      (teachers || [])?.map((t) => (
                         <tr key={t?.phone || t?.name} className="hover:bg-slate-50/80 transition">
                           <td className="py-2.5 px-3.5 font-bold text-slate-800">
                             <button
@@ -1533,8 +1538,8 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {currentTeacherSessions.length > 0 ? (
-                      currentTeacherSessions.map((session, index) => (
+                    {(currentTeacherSessions || []).length > 0 ? (
+                      currentTeacherSessions?.map((session, index) => (
                         <tr key={session.id || index} className="hover:bg-slate-50/80 transition">
                           {/* No */}
                           <td className="py-3 px-3.5 text-slate-400 font-mono text-[11px]">
@@ -1616,9 +1621,9 @@ export default function AdminDashboard() {
                           <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                           <span>
                             {isAllTeachers
-                              ? `Belum ada sesi mengajar yang diceklis/diklaim oleh guru manapun untuk periode ${selectedMonth}.`
+                              ? `Belum ada sesi mengajar yang diceklis/diklaim oleh guru manapun untuk periode ${selectedPeriod}.`
                               : currentDetailTeacher
-                              ? `Belum ada sesi mengajar yang diceklis/diklaim oleh ${currentDetailTeacher?.name || 'guru ini'} untuk periode ${selectedMonth}.`
+                              ? `Belum ada sesi mengajar yang diceklis/diklaim oleh ${currentDetailTeacher?.name || 'guru ini'} untuk periode ${selectedPeriod}.`
                               : 'Belum ada data guru terdaftar.'}
                           </span>
                         </td>
