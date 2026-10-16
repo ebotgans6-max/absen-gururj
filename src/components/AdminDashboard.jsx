@@ -184,6 +184,20 @@ export default function AdminDashboard() {
           });
           localStorage.setItem('guru_rj_teachers_v2', JSON.stringify(filtered));
         }
+
+        // Hapus juga riwayat absensi guru dari localStorage (fallback offline)
+        const savedAtt = localStorage.getItem('guru_rj_attendance_v2');
+        if (savedAtt) {
+          const attList = JSON.parse(savedAtt);
+          const filteredAtt = attList.filter((a) => {
+            if (!a) return false;
+            const phoneMatch = a.teacherPhone && (a.teacherPhone === teacherId || normalizePhone(a.teacherPhone) === normalizePhone(typeof teacherId === 'string' ? teacherId : teacherId?.phone || ''));
+            const idMatch = a.teacherId && (a.teacherId === teacherId || (typeof teacherId === 'object' && a.teacherId === teacherId?.id));
+            return !phoneMatch && !idMatch;
+          });
+          localStorage.setItem('guru_rj_attendance_v2', JSON.stringify(filteredAtt));
+        }
+
         showToast('Data guru berhasil dihapus dari penyimpanan lokal.', 'success', 'Guru Dihapus');
       } catch (e) {
         console.error('Error deleting teacher from localStorage:', e);
@@ -205,49 +219,70 @@ export default function AdminDashboard() {
   // ==============================================================
   const attendanceForSelectedDate = (attendance || []).filter((a) => a && a.date === selectedDate);
 
-  const teacherAttendanceStatusList = (teachers || [])?.map((t) => {
-    if (!t) return null;
-    const record = attendanceForSelectedDate.find((a) => {
-      if (!a) return false;
-      if (a.teacherPhone && t.phone && normalizePhone(a.teacherPhone) === normalizePhone(t.phone)) return true;
-      if (a.teacherName && t.name && a.teacherName.toLowerCase() === t.name.toLowerCase()) return true;
-      return false;
+  const teacherAttendanceStatusList = (teachers || [])
+    ?.filter((t) => Boolean(t && (t.id || t.phone)))
+    ?.map((t) => {
+      const record = attendanceForSelectedDate.find((a) => {
+        if (!a) return false;
+        if (a.teacherPhone && t.phone && normalizePhone(a.teacherPhone) === normalizePhone(t.phone)) return true;
+        if (a.teacherName && t.name && a.teacherName.toLowerCase() === t.name.toLowerCase()) return true;
+        if (a.teacherId && t.id && a.teacherId === t.id) return true;
+        return false;
+      });
+
+      const attStatus = record?.attendanceStatus || (record ? record.status : 'Belum Presensi');
+
+      return {
+        teacher: t,
+        hasAttended: !!record,
+        date: selectedDate,
+        time: record?.time || '-',
+        status: attStatus,
+        note: record?.note || '-',
+        record: record || null,
+      };
+    }).filter(Boolean);
+
+  // Filtered by status and search query, plus filter tambahan untuk memastikan teacherId dari data absensi masih benar-benar ada di dalam array/state teachers
+  const filteredAttendanceList = teacherAttendanceStatusList
+    .filter((item) => {
+      // Pastikan hanya merender data absensi jika guru/teacherId masih benar-benar ada di dalam array/state teachers (Mencegah Data Yatim)
+      if (!item || !item.teacher) return false;
+      const tId = item.teacher.id || item.teacher.phone;
+      const tPhone = item.teacher.phone ? normalizePhone(item.teacher.phone) : '';
+      const recTeacherId = item.record?.teacherId;
+      const recTeacherPhone = item.record?.teacherPhone ? normalizePhone(item.record.teacherPhone) : '';
+
+      return (teachers || []).some((t) => {
+        if (!t) return false;
+        const phoneNorm = normalizePhone(t.phone || '');
+        if (tId && (t.id === tId || t.phone === tId)) return true;
+        if (tPhone && phoneNorm === tPhone) return true;
+        if (recTeacherId && (t.id === recTeacherId || t.phone === recTeacherId)) return true;
+        if (recTeacherPhone && phoneNorm === recTeacherPhone) return true;
+        return false;
+      });
+    })
+    .filter((item) => {
+      if (!item || !item.teacher) return false;
+      const query = (searchQuery || '').toLowerCase();
+      const teacherName = (item.teacher?.name || '').toLowerCase();
+      const teacherPhone = item.teacher?.phone || '';
+      const note = (item.note || '').toLowerCase();
+      const matchesSearch =
+        teacherName.includes(query) ||
+        teacherPhone.includes(query) ||
+        note.includes(query);
+      if (!matchesSearch) return false;
+
+      if (statusFilter === 'all') return true;
+      if (statusFilter === 'hadir') return item.status === 'Hadir';
+      if (statusFilter === 'sakit') return item.status === 'Sakit';
+      if (statusFilter === 'izin') return item.status === 'Izin';
+      if (statusFilter === 'lainnya') return item.status === 'Lainnya';
+      if (statusFilter === 'belum') return item.status === 'Belum Presensi' || !item.hasAttended;
+      return true;
     });
-
-    const attStatus = record?.attendanceStatus || (record ? record.status : 'Belum Presensi');
-
-    return {
-      teacher: t,
-      hasAttended: !!record,
-      date: selectedDate,
-      time: record?.time || '-',
-      status: attStatus,
-      note: record?.note || '-',
-      record: record || null,
-    };
-  }).filter(Boolean);
-
-  // Filtered by status and search query
-  const filteredAttendanceList = teacherAttendanceStatusList.filter((item) => {
-    if (!item || !item.teacher) return false;
-    const query = (searchQuery || '').toLowerCase();
-    const teacherName = (item.teacher?.name || '').toLowerCase();
-    const teacherPhone = item.teacher?.phone || '';
-    const note = (item.note || '').toLowerCase();
-    const matchesSearch =
-      teacherName.includes(query) ||
-      teacherPhone.includes(query) ||
-      note.includes(query);
-    if (!matchesSearch) return false;
-
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'hadir') return item.status === 'Hadir';
-    if (statusFilter === 'sakit') return item.status === 'Sakit';
-    if (statusFilter === 'izin') return item.status === 'Izin';
-    if (statusFilter === 'lainnya') return item.status === 'Lainnya';
-    if (statusFilter === 'belum') return item.status === 'Belum Presensi' || !item.hasAttended;
-    return true;
-  });
 
   const hadirCount = teacherAttendanceStatusList.filter((i) => i.status === 'Hadir').length;
   const sakitCount = teacherAttendanceStatusList.filter((i) => i.status === 'Sakit').length;

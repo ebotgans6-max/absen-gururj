@@ -1244,7 +1244,7 @@ export const AppProvider = ({ children }) => {
     return { success: true };
   };
 
-  // Delete Teacher (Requirement: Hapus Guru dari data master & Firestore)
+  // Delete Teacher (Requirement: Hapus Guru dari data master, Firestore, serta riwayat absensi)
   const deleteTeacher = async (teacherIdentifier) => {
     if (!teacherIdentifier) return { success: false, error: 'Identifier tidak valid' };
 
@@ -1252,16 +1252,35 @@ export const AppProvider = ({ children }) => {
     let targetId = '';
     let targetName = 'Guru';
 
-    if (typeof teacherIdentifier === 'string') {
-      targetNorm = normalizePhone(teacherIdentifier);
+    // Cari data guru di state teachers untuk memastikan id, phone, dan nama terambil akurat
+    const matchedTeacher = (teachers || []).find((t) => {
+      if (!t) return false;
+      if (typeof teacherIdentifier === 'object' && teacherIdentifier !== null) {
+        if (teacherIdentifier.id && t.id === teacherIdentifier.id) return true;
+        if (teacherIdentifier.phone && (t.phone === teacherIdentifier.phone || normalizePhone(t.phone) === normalizePhone(teacherIdentifier.phone))) return true;
+      } else if (typeof teacherIdentifier === 'string') {
+        if (t.id === teacherIdentifier) return true;
+        if (t.phone === teacherIdentifier || normalizePhone(t.phone) === normalizePhone(teacherIdentifier)) return true;
+      }
+      return false;
+    });
+
+    if (matchedTeacher) {
+      targetId = matchedTeacher.id || '';
+      targetNorm = normalizePhone(matchedTeacher.phone || '');
+      targetName = matchedTeacher.name || targetName;
+    } else if (typeof teacherIdentifier === 'string') {
       targetId = teacherIdentifier;
+      if (/^\+?[\d\s-]+$/.test(teacherIdentifier)) {
+        targetNorm = normalizePhone(teacherIdentifier);
+      }
     } else if (typeof teacherIdentifier === 'object' && teacherIdentifier !== null) {
       targetNorm = normalizePhone(teacherIdentifier.phone || '');
       targetId = teacherIdentifier.id || '';
       targetName = teacherIdentifier.name || 'Guru';
     }
 
-    // 1. Update State teachers
+    // 1. Update State teachers & LocalStorage
     setTeachers((prev) => {
       const updated = prev.filter((t) => {
         const norm = normalizePhone(t.phone || '');
@@ -1284,17 +1303,75 @@ export const AppProvider = ({ children }) => {
     });
 
     // 2. Also remove from registeredUsers if present
-    if (targetNorm) {
+    if (targetNorm || targetId) {
       setRegisteredUsers((prev) => {
-        const updated = prev.filter((u) => normalizePhone(u.phone || '') !== targetNorm);
+        const updated = prev.filter((u) => {
+          const uNorm = normalizePhone(u.phone || '');
+          if (targetNorm && uNorm === targetNorm) return false;
+          if (targetId && (u.id === targetId || u.phone === targetId)) return false;
+          return true;
+        });
         try {
+          localStorage.setItem('guru_rj_users_v2', JSON.stringify(updated));
           localStorage.setItem('guru_rj_users', JSON.stringify(updated));
         } catch (e) {}
         return updated;
       });
     }
 
-    // 3. Remove from Firestore if online
+    // 3. Filter state attendance (riwayat absen lokal) & sinkronisasi localStorage
+    const attendanceRecordsToDelete = [];
+    setAttendance((prev) => {
+      const updated = (prev || []).filter((a) => {
+        if (!a) return false;
+        const norm = normalizePhone(a.teacherPhone || '');
+        const phoneMatch = targetNorm && norm === targetNorm;
+        const idMatch = targetId && (a.teacherId === targetId || a.teacherPhone === targetId);
+        const nameMatch = targetName && targetName !== 'Guru' && a.teacherName && a.teacherName.toLowerCase() === targetName.toLowerCase();
+
+        if (phoneMatch || idMatch || (nameMatch && !a.teacherPhone)) {
+          attendanceRecordsToDelete.push(a);
+          return false;
+        }
+        return true;
+      });
+      try {
+        localStorage.setItem('guru_rj_attendance_v2', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Error saving attendance to localStorage:', e);
+      }
+      return updated;
+    });
+
+    // 4. Hapus riwayat absen milik guru dari Firestore database
+    attendanceRecordsToDelete.forEach((rec) => {
+      if (rec.id) {
+        deleteDoc(doc(db, 'attendance', rec.id)).catch((err) =>
+          console.warn('Firestore delete attendance error:', err)
+        );
+      }
+    });
+
+    // Pastikan jika ada record absensi guru di Firestore yang belum termuat di lokal ikut dibersihkan
+    if (targetNorm || targetId) {
+      try {
+        const attSnapshot = await getDocs(collection(db, 'attendance'));
+        attSnapshot.forEach((d) => {
+          const data = d.data();
+          if (data) {
+            const phoneMatch = targetNorm && normalizePhone(data.teacherPhone || '') === targetNorm;
+            const idMatch = targetId && (data.teacherId === targetId || data.teacherPhone === targetId);
+            if (phoneMatch || idMatch) {
+              deleteDoc(doc(db, 'attendance', d.id)).catch(() => {});
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('Firestore bulk delete attendance cleanup error:', err);
+      }
+    }
+
+    // 5. Remove from Firestore if online
     if (targetNorm) {
       try {
         await deleteDoc(doc(db, 'teachers', targetNorm));
@@ -1306,6 +1383,14 @@ export const AppProvider = ({ children }) => {
       } catch (err) {
         console.warn('Firestore delete user error:', err);
       }
+    }
+    if (targetId && targetId !== targetNorm) {
+      try {
+        await deleteDoc(doc(db, 'teachers', targetId));
+      } catch (err) {}
+      try {
+        await deleteDoc(doc(db, 'users', targetId));
+      } catch (err) {}
     }
 
     return { success: true, name: targetName };
